@@ -1,0 +1,319 @@
+# CLAUDE.md
+
+Este archivo proporciona orientación a Claude Code (claude.ai/code) cuando trabaja con código en este repositorio.
+
+## Descripción General del Proyecto
+
+**Babel** es un sistema de gestión documental con capacidades de IA y OCR. Está construido como un monolito modular usando .NET Core y principios de Clean Architecture.
+
+**Características Principales:**
+- **Organización basada en proyectos**: Los documentos se agrupan en proyectos (con nombre e ID)
+- **Carga por lotes de documentos**: Se pueden subir múltiples archivos a la vez
+- **Procesamiento inteligente**: Los archivos se procesan directamente en BD o se envían a OCR según su extensión
+- **Revisión de OCR**: Los archivos procesados por OCR pueden revisarse y editarse
+- **Búsqueda semántica**: Embeddings vectoriales para recuperación inteligente de documentos
+- **Chat potenciado por IA**: Chat con patrón RAG que devuelve respuestas con referencias a documentos fuente
+- **Procesamiento asíncrono de trabajos**: Jobs en segundo plano para OCR y vectorización
+
+## Stack Tecnológico
+
+### Backend y Arquitectura
+- **.NET 8.0** con Clean Architecture (Domain, Application, Infrastructure, Presentation)
+- **Blazor Server** para UI
+- **MediatR** para patrón CQRS (Commands/Queries)
+- **Entity Framework Core** para acceso a datos
+
+### Almacenamiento de Datos
+- **SQL Server** (Docker): Base de datos relacional principal para proyectos, metadatos de documentos y datos estructurados
+- **Qdrant** (Docker): Base de datos vectorial que almacena embeddings de documentos con referencias a archivos
+- **Sistema de Archivos/NAS**: Almacenamiento físico de documentos
+
+### IA y OCR
+- **Semantic Kernel**: Framework de orquestación de LLMs que soporta múltiples proveedores:
+  - **Ollama** (modelos locales)
+  - **OpenAI API** (GPT-4, text-embedding-ada-002)
+  - **Google Gemini API**
+- **Azure Computer Vision** (Docker): Servicio OCR para documentos basados en imágenes
+
+### Infraestructura
+- **Hangfire**: Procesamiento de trabajos en segundo plano (OCR, vectorización)
+- **Docker**: Contenedorización de SQL Server y Qdrant
+
+## Arquitectura
+
+### Capas de Clean Architecture
+
+```
+Domain (Core) → Application (Casos de Uso) → Infrastructure (Implementaciones) → Presentation (API/UI)
+```
+
+**Regla de Dependencias**: Las dependencias apuntan hacia adentro. Domain no tiene dependencias. Infrastructure depende de interfaces de Application.
+
+### Módulos Clave
+
+1. **Módulo de Proyectos**: Gestión de proyectos (CRUD, listado de proyectos con conteo de archivos)
+2. **Módulo de Documentos**: CRUD de documentos, carga por lotes, gestión de metadatos
+3. **Módulo OCR**: Procesamiento de imágenes, extracción de texto y revisión/edición de OCR
+4. **Módulo de Vectorización**: Generación de embeddings y almacenamiento en Qdrant con referencias a archivos
+5. **Módulo de Búsqueda**: Búsqueda de texto tradicional + búsqueda vectorial semántica
+6. **Módulo de IA**: Chat basado en RAG que devuelve respuestas con referencias a documentos fuente
+7. **Módulo de Jobs**: Procesadores en segundo plano de Hangfire para OCR y vectorización
+
+## Comandos de Desarrollo
+
+### Compilar y Ejecutar
+
+```bash
+# Compilar toda la solución
+dotnet build
+
+# Ejecutar la aplicación
+cd Babel.API
+dotnet run
+
+# Ejecutar tests
+dotnet test
+```
+
+### Migraciones de Base de Datos
+
+```bash
+# Crear nueva migración
+dotnet ef migrations add MigrationName --project Babel.Infrastructure --startup-project Babel.API
+
+# Aplicar migraciones
+dotnet ef database update --project Babel.Infrastructure --startup-project Babel.API
+
+# Revertir a una migración específica
+dotnet ef database update PreviousMigrationName --project Babel.Infrastructure --startup-project Babel.API
+```
+
+### Servicios Docker
+
+```bash
+# Iniciar SQL Server y Qdrant
+docker-compose up -d
+
+# Detener servicios
+docker-compose down
+
+# Ver logs
+docker-compose logs -f sqlserver
+docker-compose logs -f qdrant
+
+# Verificar SQL Server
+docker exec -it babel-sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT @@VERSION"
+
+# Verificar colecciones de Qdrant
+curl http://localhost:6333/collections
+```
+
+### Ollama (Opcional)
+
+```bash
+# Descargar modelos para LLM local
+ollama pull llama2
+ollama pull nomic-embed-text
+
+# Listar modelos instalados
+ollama list
+
+# Probar modelo
+ollama run llama2 "Hello"
+```
+
+## Estructura del Proyecto
+
+```
+Babel.Domain/           - Entidades, ValueObjects, Interfaces de Dominio (sin dependencias)
+  ├── Entities/        - Project, Document, DocumentVersion
+  └── Enums/           - DocumentStatus, FileType
+Babel.Application/      - Commands, Queries, DTOs, Interfaces de Servicios (depende de Domain)
+  ├── Commands/        - CreateProjectCommand, UploadDocumentsCommand, ProcessOcrCommand
+  ├── Queries/         - GetProjectsQuery, SearchDocumentsQuery, ChatQuery
+  └── DTOs/            - ProjectDto, DocumentDto, ChatResponseDto (con referencias a documentos)
+Babel.Infrastructure/   - EF DbContext, Repositorios, Implementaciones de Servicios Externos
+  ├── Data/            - BabelDbContext, Migrations
+  ├── Repositories/    - ProjectRepository, DocumentRepository, QdrantRepository
+  ├── Services/        - OCR (con revisión), AI (Semantic Kernel), Storage, Vectorization
+  └── Jobs/            - OcrProcessingJob, DocumentVectorizationJob
+Babel.API/              - Controladores REST API, Program.cs
+Babel.WebUI/            - Páginas y Componentes de Blazor Server
+  ├── Pages/
+  │   ├── Index.razor           - Vista de tarjetas de proyectos (nombre + cantidad de archivos)
+  │   └── Project/
+  │       └── Detail.razor      - Detalle de proyecto con chat, lista de archivos, formulario de carga
+  └── Components/
+      ├── ChatWindow.razor      - Interfaz de chat con referencias a documentos
+      ├── FileList.razor        - Listado de documentos
+      └── FileUpload.razor      - Componente de carga por lotes
+```
+
+## Flujos de Trabajo Clave
+
+### Flujo de Carga y Procesamiento de Documentos
+
+1. Usuario sube documentos (por lotes) a un proyecto → Almacenados en sistema de archivos
+2. Extensión de archivo analizada: archivos de texto → almacenamiento directo en BD, imágenes → cola de OCR
+3. Metadatos guardados en SQL Server (vinculados al proyecto)
+4. **Para archivos de texto**: Contenido extraído inmediatamente, job de vectorización activado
+5. **Para imágenes**: Job de OCR de Hangfire activado
+6. OCR extrae texto → Disponible para revisión/edición → Actualiza SQL Server
+7. Semantic Kernel genera embeddings para todos los documentos procesados
+8. Embeddings almacenados en Qdrant con referencias a archivos de documentos (no contenido completo)
+
+### Flujo de Búsqueda Semántica
+
+1. Usuario ingresa consulta de búsqueda
+2. Consulta convertida a embedding vía Semantic Kernel
+3. Búsqueda de similitud vectorial en Qdrant
+4. IDs de documentos devueltos
+5. Metadatos obtenidos de SQL Server
+6. Resultados mostrados con puntuaciones de relevancia
+
+### Flujo de Chat RAG (Limitado por Proyecto)
+
+1. Usuario hace pregunta dentro del contexto de un proyecto
+2. Pregunta vectorizada vía Semantic Kernel
+3. Búsqueda de similitud vectorial en Qdrant (filtrada por proyecto)
+4. Recuperar referencias de archivos de resultados de Qdrant
+5. Obtener contenido de documentos de SQL Server usando referencias de archivos
+6. Fragmentos de documentos relevantes ensamblados como contexto
+7. Contexto + pregunta enviados al LLM vía Semantic Kernel
+8. Respuesta del LLM + lista de IDs de documentos referenciados devueltos
+9. Respuesta y referencias a documentos mostradas en UI de Blazor
+
+## Configuración
+
+### Secciones Clave de appsettings.json
+
+- **ConnectionStrings**: SQL Server (principal + Hangfire)
+- **Qdrant**: Endpoint y nombre de colección
+- **AzureComputerVision**: Endpoint local y API key
+- **SemanticKernel**: Selección de proveedor (Ollama/OpenAI/Gemini) con credenciales
+- **FileStorage**: Ruta base y límites de tamaño de archivo
+- **Hangfire**: Ruta del dashboard y cantidad de workers
+
+## Notas Importantes de Desarrollo
+
+### Modelo de Dominio
+
+**Entidad Project:**
+- Id (Guid)
+- Name (string)
+- CreatedAt, UpdatedAt
+- Navigation: List<Document>
+
+**Entidad Document:**
+- Id (Guid)
+- ProjectId (FK)
+- FileName, FilePath, FileExtension
+- Status (enum: Pending, Processing, Completed, Failed)
+- Content (texto extraído)
+- RequiresOcr (bool - basado en extensión)
+- OcrReviewed (bool)
+- CreatedAt, ProcessedAt
+- Navigation: Project
+
+### Requisitos de UI
+
+**Página Principal (Index):**
+- Mostrar proyectos como tarjetas
+- Cada tarjeta muestra: Nombre del proyecto + cantidad de documentos
+- Click en tarjeta → navegar a detalle de proyecto
+
+**Página de Detalle de Proyecto:**
+- Tres secciones principales:
+  1. **Ventana de Chat**: Interfaz de chat RAG completa con respuestas en streaming
+  2. **Lista de Archivos**: Tabla ordenable/filtrable de documentos del proyecto con estado
+  3. **Formulario de Carga**: Arrastrar y soltar o explorar para carga por lotes
+- Las respuestas del chat deben incluir referencias clicables a documentos fuente
+
+### Integración de Semantic Kernel
+
+- Usar el patrón **Kernel Builder** para configurar proveedores
+- Soportar **cambio de plugins** en tiempo de ejecución (usuario puede elegir Ollama vs OpenAI)
+- Implementar **políticas de reintentos** para llamadas a LLM
+- Transmitir respuestas en streaming para endpoints de chat
+- **Implementación RAG**: Devolver tanto el texto de respuesta como la lista de IDs de documentos fuente
+
+### Operaciones Vectoriales con Qdrant
+
+- La colección debe crearse con las dimensiones vectoriales correctas (coincidir con modelo de embedding)
+- Almacenar **referencias a archivos** en el payload de Qdrant, no el contenido completo del documento
+- Usar **filtrado de payload** para búsquedas limitadas por proyecto (filtrar por projectId)
+- Implementar **operaciones por lotes** para vectorización masiva
+- La búsqueda vectorial devuelve IDs/referencias de documentos → obtener contenido real de SQL Server
+- Monitorear tamaño de colección e implementar estrategia de archivo
+
+### Estrategia de Procesamiento de Archivos
+
+**Enrutamiento basado en extensión:**
+- **Archivos de texto** (.txt, .md, .json, .xml): Extracción de contenido directa, sin OCR
+- **Archivos de imagen** (.jpg, .png, .tiff, .bmp): Enrutar a cola de OCR
+- **PDF**: Verificar si es basado en texto o imagen, enrutar según corresponda
+- **Documentos Office** (.docx, .xlsx): Extraer texto directamente vía biblioteca
+
+**Flujo de Revisión de OCR:**
+- Después de completar OCR, marcar documento como "Pending Review"
+- Proporcionar UI para mostrar resultado de OCR con edición inline
+- Guardar contenido revisado y marcar como "Reviewed"
+- Solo vectorizar después de que la revisión esté completa (o auto-vectorizar si revisión deshabilitada)
+
+### Jobs de Hangfire
+
+- Todos los jobs deben ser **idempotentes** (seguros para reintentar)
+- Usar **parámetros de job** para pasar IDs de documentos, no objetos completos
+- Implementar **seguimiento de progreso** para jobs de OCR de larga duración
+- Establecer **políticas de reintentos** apropiadas (3 reintentos con backoff exponencial)
+- **OcrProcessingJob**: Procesar documento individual, marcar para revisión
+- **DocumentVectorizationJob**: Generar embeddings y almacenar en Qdrant con referencia a archivo
+
+### Manejo de Errores
+
+- Crear excepciones de dominio personalizadas (ej. `DocumentNotFoundException`)
+- Usar **patrón Result** para capa de Application (evitar lanzar excepciones en casos de uso)
+- Registrar todos los fallos de servicios externos (OCR, LLM, Qdrant) con contexto
+- Implementar patrón **circuit breaker** para APIs externas
+
+## Convenciones de Código
+
+- **Async/Await**: Todas las operaciones I/O deben ser asíncronas
+- **Inyección de Dependencias**: Solo inyección por constructor
+- **Nombrado**: PascalCase para clases/métodos, camelCase para parámetros/variables
+- **Logging**: Usar `ILogger<T>` en todos los servicios, logging estructurado para eventos clave
+- **Entity Framework**: Usar migraciones para todos los cambios de esquema, nunca modificar base de datos directamente
+
+## Estrategia de Testing
+
+- **Tests Unitarios**: Lógica de dominio y handlers de Application (mockear infraestructura)
+- **Tests de Integración**: Implementaciones de repositorios, servicios externos
+- **Componentes Blazor**: Usar bUnit para testing de componentes
+- **End-to-End**: Probar flujo completo de carga de documento → OCR → búsqueda
+
+## Puntos de Acceso
+
+Cuando la aplicación está ejecutándose:
+
+- **Blazor UI**: https://localhost:5001
+- **Hangfire Dashboard**: https://localhost:5001/hangfire
+- **Qdrant Dashboard**: http://localhost:6333/dashboard
+- **SQL Server**: localhost,1433 (sa/YourStrong@Passw0rd)
+
+## Problemas Comunes
+
+### Conexión a SQL Server
+Si la conexión falla, asegurar que el contenedor Docker esté ejecutándose y TrustServerCertificate=True esté configurado.
+
+### Colección de Qdrant No Encontrada
+Crear colección manualmente o implementar auto-creación en startup con dimensiones correctas.
+
+### Conexión a Ollama Rechazada
+Verificar que Ollama esté ejecutándose: `ollama serve` y que los modelos estén descargados.
+
+### Jobs de Hangfire No se Procesan
+Verificar conexión a SQL Server para base de datos de Hangfire y verificar que worker count > 0.
+
+## Estado del Roadmap
+
+Actualmente en **Fase 1: MVP** - Enfoque en gestión básica de documentos, integración de OCR y búsqueda simple antes de implementar características avanzadas de IA.
