@@ -1,1 +1,1 @@
-# babel
+# babel - Aplicación de gestión documental con soporte para IA y OCR
