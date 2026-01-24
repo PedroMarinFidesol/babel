@@ -202,7 +202,7 @@ dotnet nuget disable source CreameIA_shared
   },
   "AllowedHosts": "*",
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1433;Database=BabelDb;User Id=sa;Password=<PASSWORD>;TrustServerCertificate=True;Encrypt=True;"
+    "DefaultConnection": "Server=localhost,1433;Database=BabelDb;User Id=sa;Password=***;TrustServerCertificate=True;Encrypt=True;"
   },
   "Qdrant": {
     "Endpoint": "http://localhost:6333",
@@ -210,7 +210,7 @@ dotnet nuget disable source CreameIA_shared
   },
   "AzureComputerVision": {
     "Endpoint": "http://localhost:5000/",
-    "ApiKey": "<AZURE_API_KEY>",
+    "ApiKey": "******",
     "UseLocalContainer": true
   }
 }
