@@ -191,30 +191,7 @@ dotnet nuget disable source CreameIA_shared
 
 ### appsettings.json
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Microsoft.EntityFrameworkCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1433;Database=BabelDb;User Id=sa;Password=***;TrustServerCertificate=True;Encrypt=True;"
-  },
-  "Qdrant": {
-    "Endpoint": "http://localhost:6333",
-    "CollectionName": "documents"
-  },
-  "AzureComputerVision": {
-    "Endpoint": "http://localhost:5000/",
-    "ApiKey": "******",
-    "UseLocalContainer": true
-  }
-}
-```
+
 
 ### Paquetes NuGet por Proyecto
 
