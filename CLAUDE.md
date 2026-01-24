@@ -2,6 +2,51 @@
 
 Este archivo proporciona orientación a Claude Code (claude.ai/code) cuando trabaja con código en este repositorio.
 
+## Gestión de Sesiones y Documentación
+
+### Skill: /end-session
+
+**Para finalizar una sesión de trabajo**, usa el comando:
+
+```
+/end-session
+```
+
+Este skill automáticamente:
+1. ✅ Crea el documento de sesión con timestamp en `docs/sessions/`
+2. ✅ Actualiza el diario de desarrollo HTML (`docs/dev-diary.html`)
+3. ✅ Actualiza CLAUDE.md con referencia a la nueva sesión
+4. ✅ Solicita nombre de rama Git de forma interactiva
+5. ✅ Hace commit y push de todos los cambios
+
+**NO es necesario hacer estos pasos manualmente** - el skill se encarga de todo el proceso.
+
+### Documentación de Sesiones de Trabajo
+
+El skill `/end-session` creará un documento de sesión en `docs/sessions/` con el siguiente formato:
+
+**Nombre del archivo:** `YYYYMMDD_HHMMSS_descripcion_breve.md`
+
+Ejemplo: `20260124_112606_proyecto_base_y_correccion_qdrant.md`
+
+**Contenido requerido:**
+1. **Título con fecha y hora:** Sesión YYYY-MM-DD HH:MM - Descripción
+2. **Resumen de la sesión:** Breve descripción de qué se hizo
+3. **Cambios implementados:** Lista detallada de archivos creados/modificados con snippets de código relevantes
+4. **Problemas encontrados y soluciones:** Errores encontrados, causas raíz y cómo se resolvieron
+5. **Desafíos técnicos:** Problemas de compatibilidad, decisiones de diseño, alternativas consideradas
+6. **Configuración final:** Estado de appsettings.json, paquetes instalados, etc.
+7. **Próximos pasos:** Qué falta por hacer y en qué orden
+8. **Comandos útiles:** Comandos relevantes ejecutados durante la sesión
+9. **Lecciones aprendidas:** Aprendizajes clave de la sesión
+10. **Estado final del proyecto:** Checklist de lo completado
+
+**Propósito:**
+- Documentar decisiones técnicas tomadas
+- Facilitar la continuación del trabajo en futuras sesiones
+- Crear un historial de evolución del proyecto
+- Servir como referencia para troubleshooting
+
 ## Descripción General del Proyecto
 
 **Babel** es un sistema de gestión documental con capacidades de IA y OCR. Está construido como un monolito modular usando .NET Core y principios de Clean Architecture.
@@ -18,10 +63,10 @@ Este archivo proporciona orientación a Claude Code (claude.ai/code) cuando trab
 ## Stack Tecnológico
 
 ### Backend y Arquitectura
-- **.NET 8.0** con Clean Architecture (Domain, Application, Infrastructure, Presentation)
+- **.NET 10.0** con Clean Architecture (Domain, Application, Infrastructure, Presentation)
 - **Blazor Server** para UI
 - **MediatR** para patrón CQRS (Commands/Queries)
-- **Entity Framework Core** para acceso a datos
+- **Entity Framework Core 10.0.2** para acceso a datos
 
 ### Almacenamiento de Datos
 - **SQL Server** (Docker): Base de datos relacional principal para proyectos, metadatos de documentos y datos estructurados
@@ -314,6 +359,45 @@ Verificar que Ollama esté ejecutándose: `ollama serve` y que los modelos esté
 ### Jobs de Hangfire No se Procesan
 Verificar conexión a SQL Server para base de datos de Hangfire y verificar que worker count > 0.
 
+### Error: UriFormatException en QdrantClient
+**Síntoma:** `System.UriFormatException: 'Invalid URI: The hostname could not be parsed.'` en DependencyInjection.cs
+
+**Causa:** QdrantClient versión 1.16.1 requiere un objeto `Uri`, no acepta strings directamente.
+
+**Solución:** ✅ Resuelto
+```csharp
+// Correcto
+var qdrantEndpoint = configuration["Qdrant:Endpoint"] ?? "http://localhost:6333";
+Uri qdrantUri = new Uri(qdrantEndpoint);
+services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantUri));
+
+// Incorrecto
+services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
+```
+
+## Historial de Sesiones
+
+Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
+
+- **20260124_112606_proyecto_base_y_correccion_qdrant.md** - Creación de la estructura base del proyecto con Clean Architecture y corrección del error de QdrantClient
+
+Cada documento de sesión contiene:
+- Cambios implementados con código
+- Problemas encontrados y soluciones
+- Comandos ejecutados
+- Lecciones aprendidas
+- Estado del proyecto al finalizar la sesión
+
 ## Estado del Roadmap
 
-Actualmente en **Fase 1: MVP** - Enfoque en gestión básica de documentos, integración de OCR y búsqueda simple antes de implementar características avanzadas de IA.
+**Fase 1 Completada:** ✅ Estructura base del proyecto
+- Clean Architecture con 4 capas implementada
+- Entity Framework Core configurado con SQL Server
+- Health checks para SQL Server, Qdrant y Azure OCR
+- Migración inicial de base de datos creada
+- Swagger UI configurado
+
+**Próxima Fase:** Gestión de Proyectos y Documentos
+- Implementar Commands/Queries con MediatR
+- Controllers para Projects y Documents
+- FileStorageService para almacenamiento de archivos

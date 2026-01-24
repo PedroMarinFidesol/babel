@@ -150,6 +150,8 @@ Para usar Azure Computer Vision en modo cloud o para obtener credenciales para e
      --location eastus
    ```
 
+   [Documentacion de instalación](https://learn.microsoft.com/es-es/azure/ai-services/computer-vision/computer-vision-how-to-install-containers#get-the-container-image)
+
 3. **Obtener credenciales**:
    - En Azure Portal, ve a tu recurso Computer Vision
    - En el menú lateral, selecciona "Keys and Endpoint"

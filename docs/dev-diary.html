@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel - Diario de Desarrollo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        nav {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+        nav a {
+            color: #3498db;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        nav a:hover {
+            background: #3498db;
+            color: white;
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+        .session {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .session:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #ecf0f1;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .session-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            flex: 1;
+        }
+        .session-meta {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+        .session-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+        .tag {
+            background: #3498db;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+        .tag.setup { background: #9b59b6; }
+        .tag.bugfix { background: #e74c3c; }
+        .tag.feature { background: #2ecc71; }
+        .tag.documentation { background: #f39c12; }
+        .tag.refactor { background: #1abc9c; }
+        .session-summary {
+            margin: 1rem 0;
+            color: #555;
+            line-height: 1.8;
+        }
+        .session-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .session-link:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🏗️ Babel - Diario de Desarrollo</h1>
+        <p>Sistema de Gestión Documental con IA y OCR</p>
+    </header>
+
+    <nav id="session-menu">
+        <ul>
+            <!-- Sesiones se añadirán aquí dinámicamente -->
+        </ul>
+    </nav>
+
+    <main>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-sessions">1</div>
+                <div class="stat-label">Sesiones Totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-hours">3.5h</div>
+                <div class="stat-label">Horas de Desarrollo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="last-session">2026-01-24</div>
+                <div class="stat-label">Última Sesión</div>
+            </div>
+        </div>
+
+        <div id="sessions-container">
+            <!-- Sesiones se añadirán aquí dinámicamente -->
+        </div>
+    </main>
+
+    <footer>
+        <p>Generado automáticamente por Claude Code | Última actualización: <span id="last-update"></span></p>
+    </footer>
+
+    <script>
+        const sessions = [
+            {
+                id: '20260124_112606',
+                date: '2026-01-24',
+                time: '11:26',
+                duration: '3.5h',
+                title: 'Creación del Proyecto Base y Corrección de QdrantClient',
+                summary: 'Sesión inicial donde se creó toda la estructura del proyecto Babel usando Clean Architecture con .NET 10.0. Se implementaron las 4 capas (Domain, Application, Infrastructure, API), se configuró Entity Framework Core, y se crearon health checks para verificar las conexiones a SQL Server, Qdrant y Azure OCR. También se resolvió un bug crítico con la inicialización de QdrantClient que requería un objeto Uri en lugar de un string.',
+                tags: ['setup', 'bugfix', 'documentation'],
+                docPath: 'sessions/20260124_112606_proyecto_base_y_correccion_qdrant.md'
+            }
+        ];
+
+        // Renderizar menú de navegación
+        const menu = document.getElementById('session-menu').querySelector('ul');
+        sessions.forEach(session => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="#session-${session.id}">${session.date}</a>`;
+            menu.appendChild(li);
+        });
+
+        // Renderizar sesiones
+        const container = document.getElementById('sessions-container');
+        sessions.forEach(session => {
+            const div = document.createElement('div');
+            div.className = 'session';
+            div.id = `session-${session.id}`;
+            div.innerHTML = `
+                <div class="session-header">
+                    <h2 class="session-title">${session.title}</h2>
+                    <div class="session-meta">
+                        📅 ${session.date} ${session.time}<br>
+                        ⏱️ ${session.duration}
+                    </div>
+                </div>
+                <div class="session-tags">
+                    ${session.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
+                </div>
+                <p class="session-summary">${session.summary}</p>
+                <a href="${session.docPath}" class="session-link">📄 Ver documentación completa →</a>
+            `;
+            container.appendChild(div);
+        });
+
+        // Actualizar estadísticas
+        document.getElementById('total-sessions').textContent = sessions.length;
+        const totalHours = sessions.reduce((sum, s) => {
+            const hours = parseFloat(s.duration.replace('h', ''));
+            return sum + hours;
+        }, 0);
+        document.getElementById('total-hours').textContent = totalHours.toFixed(1) + 'h';
+        document.getElementById('last-session').textContent = sessions[0]?.date || '-';
+
+        // Fecha de última actualización
+        document.getElementById('last-update').textContent = new Date().toLocaleString('es-ES');
+    </script>
+</body>
+</html>

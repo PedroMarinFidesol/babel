@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Babel.API/Babel.API.csproj" />
+    <Project Path="src/Babel.Application/Babel.Application.csproj" />
+    <Project Path="src/Babel.Domain/Babel.Domain.csproj" />
+    <Project Path="src/Babel.Infrastructure/Babel.Infrastructure.csproj" />
+  </Folder>
+</Solution>
