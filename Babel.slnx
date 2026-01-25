@@ -5,4 +5,7 @@
     <Project Path="src/Babel.Domain/Babel.Domain.csproj" />
     <Project Path="src/Babel.Infrastructure/Babel.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Babel.Domain.Tests/Babel.Domain.Tests.csproj" />
+  </Folder>
 </Solution>
