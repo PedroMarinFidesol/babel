@@ -379,6 +379,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260125_093956_configuracion_secrets_appsettings.md** - Configuración de secrets con appsettings.local.json
 - **20260124_112606_proyecto_base_y_correccion_qdrant.md** - Creación de la estructura base del proyecto con Clean Architecture y corrección del error de QdrantClient
 
 Cada documento de sesión contiene:

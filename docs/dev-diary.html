@@ -176,15 +176,15 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">1</div>
+                <div class="stat-value" id="total-sessions">2</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">3.5h</div>
+                <div class="stat-value" id="total-hours">4h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="last-session">2026-01-24</div>
+                <div class="stat-value" id="last-session">2026-01-25</div>
                 <div class="stat-label">Última Sesión</div>
             </div>
         </div>
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_093956',
+                date: '2026-01-25',
+                time: '09:39',
+                duration: '0.5h',
+                title: 'Configuración de Secrets con appsettings.local.json',
+                summary: 'Se implementó un sistema para proteger las claves sensibles del repositorio. Se creó appsettings.local.json (ignorado por Git) para almacenar secretos, se limpió appsettings.json de credenciales, y se actualizó Program.cs para cargar la configuración local. También se creó una plantilla .example para otros desarrolladores.',
+                tags: ['setup', 'documentation'],
+                docPath: 'sessions/20260125_093956_configuracion_secrets_appsettings.md'
+            },
             {
                 id: '20260124_112606',
                 date: '2026-01-24',
