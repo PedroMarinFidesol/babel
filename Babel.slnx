@@ -7,6 +7,7 @@
     <Project Path="src/Babel.WebUI/Babel.WebUI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Babel.Application.Tests/Babel.Application.Tests.csproj" />
     <Project Path="tests/Babel.Domain.Tests/Babel.Domain.Tests.csproj" />
   </Folder>
 </Solution>

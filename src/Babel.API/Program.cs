@@ -1,3 +1,4 @@
+using Babel.Application;
 using Babel.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,9 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API para el sistema de gestión documental Babel con capacidades de IA y OCR"
     });
 });
+
+// Add Application layer (MediatR, Validators, Behaviors)
+builder.Services.AddApplication();
 
 // Add Infrastructure layer (includes DbContext, Qdrant, Azure OCR, Health Checks)
 builder.Services.AddInfrastructure(builder.Configuration);

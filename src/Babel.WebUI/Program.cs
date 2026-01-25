@@ -1,3 +1,4 @@
+using Babel.Application;
 using Babel.Infrastructure;
 using Babel.WebUI.Services;
 using MudBlazor.Services;
@@ -13,6 +14,9 @@ builder.Services.AddMudServices();
 // Add Razor Pages and Blazor Server
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Add Application layer (MediatR, Validators, Behaviors)
+builder.Services.AddApplication();
 
 // Add Infrastructure services (includes IHealthCheckService)
 builder.Services.AddInfrastructure(builder.Configuration);

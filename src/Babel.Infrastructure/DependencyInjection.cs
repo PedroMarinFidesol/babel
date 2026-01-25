@@ -1,6 +1,7 @@
 using Babel.Application.Interfaces;
 using Babel.Infrastructure.Configuration;
 using Babel.Infrastructure.Data;
+using Babel.Infrastructure.Repositories;
 using Babel.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -51,6 +52,11 @@ public static class DependencyInjection
 
         // Health Check Service
         services.AddScoped<IHealthCheckService, HealthCheckService>();
+
+        // Repositories
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<IDocumentRepository, DocumentRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Configuration Validator
         services.AddSingleton<ConfigurationValidator>();
