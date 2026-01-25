@@ -1,6 +1,5 @@
 using Babel.Application;
 using Babel.Infrastructure;
-using Babel.WebUI.Services;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,9 +19,6 @@ builder.Services.AddApplication();
 
 // Add Infrastructure services (includes IHealthCheckService)
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Add Mock Data Service (temporary until MediatR is implemented)
-builder.Services.AddScoped<MockDataService>();
 
 var app = builder.Build();
 

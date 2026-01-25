@@ -473,6 +473,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260125_193629_fase2_cqrs_mediatr.md** - Fase 2: Patron Result, ICommand/IQuery, Behaviors (Logging, Validation, ExceptionHandling), Repositorios con Unit of Work, 31 tests
 - **20260125_164840_fase1_infraestructura.md** - Fase 1: Docker Compose, migraciones EF, QdrantInitializationService, ConfigurationValidator, PLAN_DESARROLLO.md
 - **20260125_151330_healthcheck_lazy_load.md** - Health checks bajo demanda y correccion de carga de appsettings.local.json en WebUI
 - **20260125_105026_layout_webui_mudblazor.md** - Layout inicial de Babel.WebUI con MudBlazor 8.0, componentes de chat, upload y tarjetas de proyecto
@@ -502,6 +503,13 @@ Cada documento de sesión contiene:
 - Entidad Document con campos completos (FileSizeBytes, ContentHash, MimeType, etc.)
 - Nueva entidad DocumentChunk para chunking RAG
 - Proyecto de tests con 27 tests unitarios (xUnit + FluentAssertions)
+
+**Fase 2b Completada:** ✅ CQRS con MediatR
+- Patron Result y Error para manejo funcional de errores
+- Interfaces ICommand/IQuery con handlers
+- Behaviors: LoggingBehavior, ValidationBehavior, ExceptionHandlingBehavior
+- Repositorios con Unit of Work (IRepository, IUnitOfWork)
+- 31 tests unitarios adicionales (total: 58 tests)
 
 **Fase 3 Completada:** ✅ Layout Inicial WebUI
 - Proyecto Babel.WebUI con Blazor Server + MudBlazor 8.0

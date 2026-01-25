@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">7</div>
+                <div class="stat-value" id="total-sessions">8</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">10.0h</div>
+                <div class="stat-value" id="total-hours">12.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_193629',
+                date: '2026-01-25',
+                time: '19:36',
+                duration: '2.5h',
+                title: 'Fase 2: CQRS con MediatR',
+                summary: 'Implementacion completa de infraestructura CQRS: patron Result para manejo funcional de errores, interfaces ICommand/IQuery, behaviors de pipeline (Logging, Validation, ExceptionHandling), repositorios con Unit of Work, y 31 tests unitarios. Resueltos problemas de compatibilidad con MediatR 14 y NSubstitute.',
+                tags: ['feature', 'test'],
+                docPath: 'sessions/20260125_193629_fase2_cqrs_mediatr.md'
+            },
             {
                 id: '20260125_164840',
                 date: '2026-01-25',

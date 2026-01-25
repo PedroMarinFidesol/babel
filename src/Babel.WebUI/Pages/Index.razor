@@ -1,5 +1,7 @@
 @page "/"
-@inject MockDataService MockDataService
+@using Babel.Application.Projects.Queries
+@using Babel.Application.Projects.Commands
+@inject IMediator Mediator
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
@@ -7,18 +9,41 @@
 
 <MudText Typo="Typo.h4" Class="mb-4">Proyectos</MudText>
 
-<MudGrid>
-    @foreach (var project in _projects)
-    {
-        <MudItem xs="12" sm="6" md="4" lg="3">
-            <ProjectCard Project="@project" OnCardClick="@NavigateToProject" />
-        </MudItem>
-    }
+@if (_isLoading)
+{
+    <MudGrid>
+        @for (int i = 0; i < 4; i++)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="180px" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+else if (_errorMessage is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        @_errorMessage
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@LoadProjects" Class="ml-4">
+            Reintentar
+        </MudButton>
+    </MudAlert>
+}
+else
+{
+    <MudGrid>
+        @foreach (var project in _projects)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <ProjectCard Project="@project" OnCardClick="@NavigateToProject" />
+            </MudItem>
+        }
 
-    <MudItem xs="12" sm="6" md="4" lg="3">
-        <ProjectCard IsCreateNew="true" OnCreate="@ShowCreateProjectDialog" />
-    </MudItem>
-</MudGrid>
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <ProjectCard IsCreateNew="true" OnCreate="@ShowCreateProjectDialog" />
+        </MudItem>
+    </MudGrid>
+}
 
 @* Demo Section - Shows components in action *@
 <MudDivider Class="my-8" />
@@ -95,7 +120,11 @@
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
                    OnClick="@CreateProject"
-                   Disabled="@string.IsNullOrWhiteSpace(_newProjectName)">
+                   Disabled="@(string.IsNullOrWhiteSpace(_newProjectName) || _isCreating)">
+            @if (_isCreating)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
             Crear
         </MudButton>
     </DialogActions>
@@ -106,18 +135,49 @@
     private List<DocumentDto> _documents = [];
     private Guid _selectedProjectId;
 
+    private bool _isLoading = true;
+    private bool _isCreating;
+    private string? _errorMessage;
+
     private bool _showCreateDialog;
     private string _newProjectName = "";
     private string _newProjectDescription = "";
 
     protected override async Task OnInitializedAsync()
     {
-        _projects = await MockDataService.GetProjectsAsync();
+        await LoadProjects();
+    }
 
-        if (_projects.Count > 0)
+    private async Task LoadProjects()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
         {
-            _selectedProjectId = _projects[0].Id;
-            _documents = await MockDataService.GetDocumentsByProjectIdAsync(_selectedProjectId);
+            var result = await Mediator.Send(new GetProjectsQuery());
+
+            if (result.IsSuccess)
+            {
+                _projects = result.Value!;
+
+                if (_projects.Count > 0)
+                {
+                    _selectedProjectId = _projects[0].Id;
+                }
+            }
+            else
+            {
+                _errorMessage = result.Error.Description;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al cargar proyectos: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 
@@ -135,13 +195,39 @@
         _showCreateDialog = true;
     }
 
-    private void CreateProject()
+    private async Task CreateProject()
     {
-        // Mock create - just show snackbar
-        Snackbar.Add($"Proyecto '{_newProjectName}' creado (mock)", Severity.Success);
-        _showCreateDialog = false;
+        _isCreating = true;
 
-        // In real implementation, this would call a MediatR command
+        try
+        {
+            var command = new CreateProjectCommand(_newProjectName, _newProjectDescription);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add($"Proyecto '{result.Value!.Name}' creado exitosamente", Severity.Success);
+                _showCreateDialog = false;
+                await LoadProjects();
+            }
+            else
+            {
+                Snackbar.Add(result.Error.Description, Severity.Error);
+            }
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = string.Join(", ", ex.Errors.Select(e => e.ErrorMessage));
+            Snackbar.Add(errors, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al crear proyecto: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isCreating = false;
+        }
     }
 
     private void HandleDocumentClick(Guid documentId)

@@ -1,4 +1,3 @@
-@inject MockDataService MockDataService
 @inject IJSRuntime JS
 
 <MudPaper Elevation="2" Class="d-flex flex-column" Style="height: 500px;">
@@ -23,6 +22,9 @@
                 <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
                 <MudText Typo="Typo.body1" Color="Color.Secondary">No hay mensajes</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">Escribe una pregunta sobre los documentos del proyecto</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    (El servicio de IA no está implementado aún)
+                </MudText>
             </div>
         }
         else
@@ -72,11 +74,6 @@
     private bool _isProcessing;
     private ElementReference _chatContainer;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _messages = await MockDataService.GetChatHistoryAsync(ProjectId);
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_messages.Count > 0)
@@ -114,9 +111,17 @@
 
         try
         {
-            // Get AI response (mock)
-            var response = await MockDataService.SendChatMessageAsync(ProjectId, userMessage);
-            _messages.Add(response);
+            // TODO: Implement actual RAG chat via MediatR command
+            // For now, show a placeholder response
+            await Task.Delay(500); // Simulate processing time
+
+            _messages.Add(new ChatMessageDto
+            {
+                Content = "El servicio de chat RAG no está implementado aún. Esta funcionalidad estará disponible en una fase posterior del desarrollo.",
+                IsUser = false,
+                Timestamp = DateTime.UtcNow,
+                References = []
+            });
         }
         catch
         {
