@@ -32,7 +32,15 @@
       "Bash(dir \"C:\\\\Users\\\\pmarin\\\\babel\\\\.claude\")",
       "Bash(dir:*)",
       "Bash(findstr:*)",
-      "mcp__plugin_context7_context7__query-docs"
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet ef dbcontext:*)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(git fetch:*)"
     ]
   }
 }
