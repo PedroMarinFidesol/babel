@@ -1,6 +1,6 @@
 ---
 name: end-session
-description: Finaliza la sesión de trabajo creando documentación de sesión, actualizando el diario de desarrollo y haciendo commit/push a Git
+description: Finaliza la sesión de trabajo creando documentación de sesión y actualizando el diario de desarrollo
 ---
 
 # End Session Skill
@@ -74,7 +74,6 @@ Añade la nueva sesión a la sección "## Historial de Sesiones" en CLAUDE.md:
 - **{timestamp}_{descripcion}.md** - Descripción breve de la sesión
 ```
 
-
 ### Paso 5: Mensaje Final
 
 Informa al usuario con una tabla de resumen:
@@ -85,6 +84,7 @@ Informa al usuario con una tabla de resumen:
 | Diario de desarrollo actualizado | ✅ `docs/dev-diary.html` |
 | CLAUDE.md actualizado | ✅ Nueva sesión referenciada |
 
+**Nota:** El commit y push a Git debe hacerse manualmente por el usuario cuando lo desee.
 
 ## Tags Disponibles
 
