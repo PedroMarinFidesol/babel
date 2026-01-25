@@ -4,6 +4,9 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local settings with secrets (not committed to git)
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
 // Add MudBlazor services
 builder.Services.AddMudServices();
 

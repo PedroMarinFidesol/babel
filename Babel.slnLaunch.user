@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Web+API",
+    "Projects": [
+      {
+        "Path": "src\\Babel.API\\Babel.API.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\Babel.WebUI\\Babel.WebUI.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

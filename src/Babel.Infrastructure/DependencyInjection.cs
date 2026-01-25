@@ -24,18 +24,18 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<BabelDbContext>());
 
-        // Qdrant Client
-        var qdrantEndpoint = configuration["Qdrant:Endpoint"] ?? "http://localhost:6333";
-        Uri qdrantUri = new Uri(qdrantEndpoint);
+        // Qdrant Client (uses gRPC on port 6334 by default)
+        var qdrantHost = configuration["Qdrant:Host"] ?? "localhost";
+        var qdrantPort = configuration.GetValue<int>("Qdrant:GrpcPort", 6334);
         services.AddSingleton<QdrantClient>(sp =>
-            new QdrantClient(qdrantUri));
+            new QdrantClient(qdrantHost, qdrantPort));
 
-        // HttpClient for Azure OCR
+        // HttpClient for Azure OCR (short timeout for health checks, operations use their own CancellationToken)
         var azureOcrEndpoint = configuration["AzureComputerVision:Endpoint"] ?? "http://localhost:5000";
         services.AddHttpClient("AzureOcr", client =>
         {
             client.BaseAddress = new Uri(azureOcrEndpoint);
-            client.Timeout = TimeSpan.FromSeconds(30);
+            client.Timeout = TimeSpan.FromSeconds(10);
         });
 
         // Health Check Service

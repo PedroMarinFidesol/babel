@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">5</div>
+                <div class="stat-value" id="total-sessions">6</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">7.5h</div>
+                <div class="stat-value" id="total-hours">8.0h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_151330',
+                date: '2026-01-25',
+                time: '15:13',
+                duration: '0.5h',
+                title: 'Health Checks Lazy Load y Correccion de Configuracion',
+                summary: 'Se optimizo el componente ServiceStatusIndicator para que los health checks solo se ejecuten bajo demanda (al pulsar el boton), eliminando la carga automatica que causaba retrasos en el arranque. Se corrigio un bug donde WebUI no cargaba appsettings.local.json, causando fallos en la conexion a SQL Server. Se ajusto la posicion del menu de status.',
+                tags: ['bugfix', 'refactor'],
+                docPath: 'sessions/20260125_151330_healthcheck_lazy_load.md'
+            },
             {
                 id: '20260125_105026',
                 date: '2026-01-25',

@@ -1,78 +1,90 @@
 @inject IHealthCheckService HealthCheckService
-@implements IDisposable
 
-<MudMenu Icon="@GetOverallStatusIcon()" Color="@GetOverallStatusColor()" Dense="true" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+<MudMenu @ref="_menu"
+         Icon="@GetOverallStatusIcon()"
+         Color="@GetOverallStatusColor()"
+         Dense="true"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight">
     <ChildContent>
         <MudList T="string" Dense="true" Class="pa-0" Style="min-width: 280px;">
             <MudListSubheader Class="py-1">
-                <MudText Typo="Typo.overline">Estado de Servicios</MudText>
-            </MudListSubheader>
-
-            @foreach (var status in _serviceStatuses)
-            {
-                <MudListItem T="string" Dense="true" Class="py-1">
-                    <div class="d-flex align-center justify-space-between" style="width: 100%;">
-                        <div class="d-flex align-center">
-                            <MudIcon Icon="@GetStatusIcon(status.IsHealthy)"
-                                     Color="@GetStatusColor(status.IsHealthy)"
-                                     Size="Size.Small"
-                                     Class="mr-2" />
-                            <MudText Typo="Typo.body2">@status.ServiceName</MudText>
-                        </div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            @status.ResponseTime.TotalMilliseconds.ToString("0")ms
-                        </MudText>
-                    </div>
-                </MudListItem>
-            }
-
-            <MudDivider Class="my-1" />
-
-            <MudListItem T="string" Dense="true" Class="py-1">
                 <div class="d-flex align-center justify-space-between" style="width: 100%;">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        Ultima actualizacion: @_lastCheck.ToString("HH:mm:ss")
-                    </MudText>
+                    <MudText Typo="Typo.overline">Estado de Servicios</MudText>
                     <MudIconButton Icon="@Icons.Material.Filled.Refresh"
                                    Size="Size.Small"
                                    OnClick="@RefreshStatusAsync"
                                    Disabled="@_isLoading" />
                 </div>
-            </MudListItem>
+            </MudListSubheader>
+
+            @if (_isLoading)
+            {
+                <MudListItem T="string" Dense="true" Class="py-2">
+                    <div class="d-flex justify-center">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <MudText Typo="Typo.body2" Class="ml-2">Comprobando...</MudText>
+                    </div>
+                </MudListItem>
+            }
+            else if (_serviceStatuses.Count == 0)
+            {
+                <MudListItem T="string" Dense="true" Class="py-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Pulsa actualizar para comprobar
+                    </MudText>
+                </MudListItem>
+            }
+            else
+            {
+                @foreach (var status in _serviceStatuses)
+                {
+                    <MudListItem T="string" Dense="true" Class="py-1">
+                        <div class="d-flex align-center justify-space-between" style="width: 100%;">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@GetStatusIcon(status.IsHealthy)"
+                                         Color="@GetStatusColor(status.IsHealthy)"
+                                         Size="Size.Small"
+                                         Class="mr-2" />
+                                <MudText Typo="Typo.body2">@status.ServiceName</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @status.ResponseTime.TotalMilliseconds.ToString("0")ms
+                            </MudText>
+                        </div>
+                    </MudListItem>
+                }
+
+                <MudDivider Class="my-1" />
+
+                <MudListItem T="string" Dense="true" Class="py-1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Ultima comprobacion: @_lastCheck?.ToString("HH:mm:ss")
+                    </MudText>
+                </MudListItem>
+            }
         </MudList>
     </ChildContent>
 </MudMenu>
 
 @code {
+    private MudMenu? _menu;
     private List<HealthCheckResult> _serviceStatuses = [];
-    private DateTime _lastCheck = DateTime.Now;
+    private DateTime? _lastCheck;
     private bool _isLoading;
-    private Timer? _timer;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await RefreshStatusAsync();
-
-        // Auto-refresh every 30 seconds
-        _timer = new Timer(async _ =>
-        {
-            await RefreshStatusAsync();
-            await InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-    }
 
     private async Task RefreshStatusAsync()
     {
-        if (_isLoading) return;
-
         _isLoading = true;
         StateHasChanged();
 
         try
         {
-            var sqlTask = HealthCheckService.CheckSqlServerAsync();
-            var qdrantTask = HealthCheckService.CheckQdrantAsync();
-            var ocrTask = HealthCheckService.CheckAzureOcrAsync();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+            var sqlTask = HealthCheckService.CheckSqlServerAsync(cts.Token);
+            var qdrantTask = HealthCheckService.CheckQdrantAsync(cts.Token);
+            var ocrTask = HealthCheckService.CheckAzureOcrAsync(cts.Token);
 
             await Task.WhenAll(sqlTask, qdrantTask, ocrTask);
 
@@ -85,26 +97,37 @@
 
             _lastCheck = DateTime.Now;
         }
+        catch (OperationCanceledException)
+        {
+            _serviceStatuses =
+            [
+                new HealthCheckResult { ServiceName = "SQL Server", IsHealthy = false, Message = "Timeout" },
+                new HealthCheckResult { ServiceName = "Qdrant", IsHealthy = false, Message = "Timeout" },
+                new HealthCheckResult { ServiceName = "Azure OCR", IsHealthy = false, Message = "Timeout" }
+            ];
+            _lastCheck = DateTime.Now;
+        }
         catch
         {
-            // If health checks fail entirely, show unknown status
             _serviceStatuses =
             [
                 new HealthCheckResult { ServiceName = "SQL Server", IsHealthy = false, Message = "No disponible" },
                 new HealthCheckResult { ServiceName = "Qdrant", IsHealthy = false, Message = "No disponible" },
                 new HealthCheckResult { ServiceName = "Azure OCR", IsHealthy = false, Message = "No disponible" }
             ];
+            _lastCheck = DateTime.Now;
         }
         finally
         {
             _isLoading = false;
+            StateHasChanged();
         }
     }
 
     private string GetOverallStatusIcon()
     {
-        if (_isLoading) return Icons.Material.Filled.HourglassEmpty;
-        if (_serviceStatuses.Count == 0) return Icons.Material.Filled.QuestionMark;
+        if (_isLoading) return Icons.Material.Filled.Sync;
+        if (_serviceStatuses.Count == 0) return Icons.Material.Filled.CloudQueue;
 
         var allHealthy = _serviceStatuses.All(s => s.IsHealthy);
         var anyHealthy = _serviceStatuses.Any(s => s.IsHealthy);
@@ -131,9 +154,4 @@
 
     private static Color GetStatusColor(bool isHealthy) =>
         isHealthy ? Color.Success : Color.Error;
-
-    public void Dispose()
-    {
-        _timer?.Dispose();
-    }
 }
