@@ -16,10 +16,8 @@ Este skill automáticamente:
 1. ✅ Crea el documento de sesión con timestamp en `docs/sessions/`
 2. ✅ Actualiza el diario de desarrollo HTML (`docs/dev-diary.html`)
 3. ✅ Actualiza CLAUDE.md con referencia a la nueva sesión
-4. ✅ Solicita nombre de rama Git de forma interactiva
-5. ✅ Hace commit y push de todos los cambios
 
-**NO es necesario hacer estos pasos manualmente** - el skill se encarga de todo el proceso.
+**Nota:** El commit y push a Git debe hacerse manualmente por el usuario cuando lo desee.
 
 ### Documentación de Sesiones de Trabajo
 
