@@ -1,4 +1,5 @@
 using Babel.Application.Interfaces;
+using Babel.Infrastructure.Configuration;
 using Babel.Infrastructure.Data;
 using Babel.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,13 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // Registrar opciones de configuración
+        services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
+        services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
+        services.Configure<SemanticKernelOptions>(configuration.GetSection(SemanticKernelOptions.SectionName));
+        services.Configure<AzureOcrOptions>(configuration.GetSection(AzureOcrOptions.SectionName));
+        services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));
+
         // SQL Server DbContext
         services.AddDbContext<BabelDbContext>(options =>
             options.UseSqlServer(
@@ -30,6 +38,9 @@ public static class DependencyInjection
         services.AddSingleton<QdrantClient>(sp =>
             new QdrantClient(qdrantUri));
 
+        // Qdrant Initialization Service (crea la colección al inicio)
+        services.AddHostedService<QdrantInitializationService>();
+
         // HttpClient for Azure OCR
         var azureOcrEndpoint = configuration["AzureComputerVision:Endpoint"] ?? "http://localhost:5000";
         services.AddHttpClient("AzureOcr", client =>
@@ -41,10 +52,22 @@ public static class DependencyInjection
         // Health Check Service
         services.AddScoped<IHealthCheckService, HealthCheckService>();
 
+        // Configuration Validator
+        services.AddSingleton<ConfigurationValidator>();
+
         // EF Core Health Check
         services.AddHealthChecks()
             .AddDbContextCheck<BabelDbContext>("database");
 
         return services;
+    }
+
+    /// <summary>
+    /// Valida la configuración al inicio de la aplicación.
+    /// </summary>
+    public static bool ValidateConfiguration(this IServiceProvider serviceProvider)
+    {
+        var validator = serviceProvider.GetRequiredService<ConfigurationValidator>();
+        return validator.Validate();
     }
 }

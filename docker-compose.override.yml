@@ -1,0 +1,27 @@
+# Docker Compose Override - Configuraciones específicas de desarrollo local
+# Este archivo se carga automáticamente junto con docker-compose.yml
+
+services:
+  sqlserver:
+    environment:
+      # Password para desarrollo local (cambiar en producción)
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+    # Exponer puerto adicional para debugging si es necesario
+    # ports:
+    #   - "1434:1434"
+
+  qdrant:
+    environment:
+      # Configuración de desarrollo - logs más detallados
+      - QDRANT__LOG_LEVEL=INFO
+
+  azure-ocr:
+    # En desarrollo, si no tienes credenciales de Azure, puedes comentar este servicio
+    # y usar un mock o deshabilitarlo temporalmente
+    profiles:
+      - ocr  # Solo se inicia si se especifica: docker-compose --profile ocr up
+    environment:
+      # Para desarrollo local sin Azure, usa valores placeholder
+      # El servicio arrancará pero necesita credenciales válidas para funcionar
+      - Billing=${AZURE_OCR_BILLING_ENDPOINT:-https://placeholder.cognitiveservices.azure.com/}
+      - ApiKey=${AZURE_OCR_API_KEY:-placeholder-key}

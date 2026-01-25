@@ -1,0 +1,75 @@
+# Docker Compose para Babel - Entorno de Desarrollo
+# Servicios: SQL Server 2022, Qdrant, Azure Computer Vision (Read OCR)
+
+services:
+  # SQL Server 2022 - Base de datos principal y Hangfire
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: babel-sqlserver
+    hostname: babel-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_SA_PASSWORD:-YourStrong@Passw0rd}
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./scripts/sql:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Qdrant - Base de datos vectorial para embeddings
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: babel-qdrant
+    hostname: babel-qdrant
+    ports:
+      - "6333:6333"  # REST API
+      - "6334:6334"  # gRPC
+    volumes:
+      - qdrant-data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # Azure Computer Vision - OCR local (Read API)
+  # Imagen oficial de Microsoft para procesamiento de documentos
+  azure-ocr:
+    image: mcr.microsoft.com/azure-cognitive-services/vision/read:3.2
+    container_name: babel-azure-ocr
+    hostname: babel-azure-ocr
+    ports:
+      - "5000:5000"
+    environment:
+      - EULA=accept
+      - Billing=${AZURE_OCR_BILLING_ENDPOINT:-https://westeurope.api.cognitive.microsoft.com/}
+      - ApiKey=${AZURE_OCR_API_KEY:-your-api-key}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+    name: babel-sqlserver-data
+  qdrant-data:
+    name: babel-qdrant-data
+
+networks:
+  default:
+    name: babel-network
