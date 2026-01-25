@@ -191,34 +191,7 @@ dotnet nuget disable source CreameIA_shared
 
 ### appsettings.json
 
-<<<<<<< HEAD
-
-=======
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning",
-      "Microsoft.EntityFrameworkCore": "Warning"
-    }
-  },
-  "AllowedHosts": "*",
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1433;Database=BabelDb;User Id=sa;Password=;TrustServerCertificate=True;Encrypt=True;"
-  },
-  "Qdrant": {
-    "Endpoint": "http://localhost:6333",
-    "CollectionName": "documents"
-  },
-  "AzureComputerVision": {
-    "Endpoint": "http://localhost:5000/",
-    "ApiKey": "",
-    "UseLocalContainer": true
-  }
-}
-```
->>>>>>> b3b908f (update session info)
+> **Nota:** Consultar `appsettings.json` del proyecto para la configuración real. No se incluyen credenciales en la documentación.
 
 ### Paquetes NuGet por Proyecto
 
@@ -347,7 +320,7 @@ docker logs babel-qdrant
 docker ps
 
 # Conectar a SQL Server
-docker exec -it babel-sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "<PASSWORD>"
+docker exec -it babel-sqlserver /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "<TU_PASSWORD>"
 ```
 
 ### Health Checks
