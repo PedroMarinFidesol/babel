@@ -10,21 +10,40 @@
 }
 else if (Project != null)
 {
-    <MudCard Class="project-card" Elevation="2" @onclick="@(() => OnCardClick.InvokeAsync(Project))">
+    <MudCard Class="project-card" Elevation="2">
         <MudCardHeader>
             <CardHeaderContent>
                 <MudText Typo="Typo.h6">@Project.Name</MudText>
             </CardHeaderContent>
             <CardHeaderActions>
-                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" Size="Size.Small" />
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                         AnchorOrigin="Origin.BottomRight"
+                         TransformOrigin="Origin.TopRight"
+                         Dense="true">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                 OnClick="@HandleEditClick">
+                        Editar
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                                 OnClick="@HandleDeleteClick"
+                                 Class="red-text">
+                        Eliminar
+                    </MudMenuItem>
+                </MudMenu>
             </CardHeaderActions>
         </MudCardHeader>
 
-        <MudCardContent>
+        <MudCardContent @onclick="@(() => OnCardClick.InvokeAsync(Project))" style="cursor: pointer;">
             @if (!string.IsNullOrEmpty(Project.Description))
             {
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" Style="min-height: 40px;">
                     @TruncateDescription(Project.Description, 80)
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" Style="min-height: 40px;">
+                    Sin descripcion
                 </MudText>
             }
 
@@ -81,9 +100,31 @@ else if (Project != null)
     [Parameter]
     public EventCallback OnCreate { get; set; }
 
+    [Parameter]
+    public EventCallback<ProjectDto> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<ProjectDto> OnDelete { get; set; }
+
     private async Task OnCreateClick()
     {
         await OnCreate.InvokeAsync();
+    }
+
+    private async Task HandleEditClick()
+    {
+        if (Project != null)
+        {
+            await OnEdit.InvokeAsync(Project);
+        }
+    }
+
+    private async Task HandleDeleteClick()
+    {
+        if (Project != null)
+        {
+            await OnDelete.InvokeAsync(Project);
+        }
     }
 
     private double GetProgressValue()

@@ -1,0 +1,386 @@
+@page "/project/{ProjectId:guid}"
+@using Babel.Application.Projects.Queries
+@using Babel.Application.Projects.Commands
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>@(_project?.Name ?? "Proyecto") - Babel</PageTitle>
+
+@if (_isLoading)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="60px" Class="mb-4" />
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="500px" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px" Class="mb-4" />
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="280px" />
+        </MudItem>
+    </MudGrid>
+}
+else if (_errorMessage is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        @_errorMessage
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@LoadProject" Class="ml-4">
+            Reintentar
+        </MudButton>
+    </MudAlert>
+}
+else if (_project is not null)
+{
+    @* Header con nombre del proyecto y acciones *@
+    <div class="d-flex align-center mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@GoBack"
+                       Class="mr-2" />
+        <MudText Typo="Typo.h4" Class="flex-grow-1">@_project.Name</MudText>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.BottomRight">
+            <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@ShowEditDialog">
+                Editar proyecto
+            </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@ShowDeleteDialog" Class="red-text">
+                Eliminar proyecto
+            </MudMenuItem>
+        </MudMenu>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_project.Description))
+    {
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-4">
+            @_project.Description
+        </MudText>
+    }
+
+    @* Estadísticas del proyecto *@
+    <MudGrid Class="mb-4">
+        <MudItem xs="4">
+            <MudPaper Elevation="2" Class="pa-4 text-center">
+                <MudText Typo="Typo.h4" Color="Color.Primary">@_project.TotalDocuments</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Documentos</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4">
+            <MudPaper Elevation="2" Class="pa-4 text-center">
+                <MudText Typo="Typo.h4" Color="Color.Success">@_project.ProcessedDocuments</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Procesados</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4">
+            <MudPaper Elevation="2" Class="pa-4 text-center">
+                <MudText Typo="Typo.h4" Color="Color.Warning">@_project.PendingDocuments</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Pendientes</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* Contenido principal *@
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" Class="mb-2">Chat RAG</MudText>
+            <ChatWindow ProjectId="@ProjectId" OnDocumentReferenceClick="@HandleDocumentClick" />
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.h6" Class="mb-2">Subir Documentos</MudText>
+            <FileUpload ProjectId="@ProjectId" OnFilesUploaded="@HandleFilesUploaded" />
+
+            <MudText Typo="Typo.h6" Class="mb-2 mt-4">Documentos</MudText>
+            <MudPaper Elevation="2" Class="pa-4">
+                @if (_documents.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-center pa-4">
+                        No hay documentos en este proyecto. Sube archivos para comenzar.
+                    </MudText>
+                }
+                else
+                {
+                    <MudTable Items="@_documents" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Nombre</MudTh>
+                            <MudTh>Tamaño</MudTh>
+                            <MudTh>Estado</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Nombre">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@GetFileIcon(context.FileExtension)" Size="Size.Small" Class="mr-2" />
+                                    @context.FileName
+                                </div>
+                            </MudTd>
+                            <MudTd DataLabel="Tamaño">@context.FileSizeFormatted</MudTd>
+                            <MudTd DataLabel="Estado">
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
+                                    @GetStatusText(context.Status)
+                                </MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@* Edit Project Dialog *@
+<MudDialog @bind-Visible="_showEditDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Class="mr-2" />
+            Editar Proyecto
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_editProjectName"
+                      Label="Nombre del proyecto"
+                      Variant="Variant.Outlined"
+                      Required="true"
+                      Class="mb-4" />
+        <MudTextField @bind-Value="_editProjectDescription"
+                      Label="Descripción (opcional)"
+                      Variant="Variant.Outlined"
+                      Lines="3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showEditDialog = false)">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="@UpdateProject"
+                   Disabled="@(string.IsNullOrWhiteSpace(_editProjectName) || _isUpdating)">
+            @if (_isUpdating)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Delete Confirmation Dialog *@
+<MudDialog @bind-Visible="_showDeleteDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Color="Color.Error">
+            <MudIcon Icon="@Icons.Material.Filled.Warning" Class="mr-2" />
+            Eliminar Proyecto
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText>
+            ¿Estás seguro de que deseas eliminar el proyecto <strong>@_project?.Name</strong>?
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            Esta acción eliminará todos los documentos asociados y no se puede deshacer.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showDeleteDialog = false)">Cancelar</MudButton>
+        <MudButton Color="Color.Error"
+                   Variant="Variant.Filled"
+                   OnClick="@DeleteProject"
+                   Disabled="@_isDeleting">
+            @if (_isDeleting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            Eliminar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private ProjectDto? _project;
+    private List<DocumentDto> _documents = [];
+
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    // Edit dialog state
+    private bool _showEditDialog;
+    private bool _isUpdating;
+    private string _editProjectName = "";
+    private string _editProjectDescription = "";
+
+    // Delete dialog state
+    private bool _showDeleteDialog;
+    private bool _isDeleting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProject();
+    }
+
+    private async Task LoadProject()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var result = await Mediator.Send(new GetProjectByIdQuery(ProjectId));
+
+            if (result.IsSuccess)
+            {
+                _project = result.Value!;
+            }
+            else
+            {
+                _errorMessage = result.Error.Description;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al cargar el proyecto: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void ShowEditDialog()
+    {
+        if (_project is null) return;
+
+        _editProjectName = _project.Name;
+        _editProjectDescription = _project.Description ?? "";
+        _showEditDialog = true;
+    }
+
+    private async Task UpdateProject()
+    {
+        if (_project is null) return;
+
+        _isUpdating = true;
+
+        try
+        {
+            var command = new UpdateProjectCommand(ProjectId, _editProjectName, _editProjectDescription);
+            var result = await Mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                _project = result.Value!;
+                Snackbar.Add("Proyecto actualizado exitosamente", Severity.Success);
+                _showEditDialog = false;
+            }
+            else
+            {
+                Snackbar.Add(result.Error.Description, Severity.Error);
+            }
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var errors = string.Join(", ", ex.Errors.Select(e => e.ErrorMessage));
+            Snackbar.Add(errors, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al actualizar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUpdating = false;
+        }
+    }
+
+    private void ShowDeleteDialog()
+    {
+        _showDeleteDialog = true;
+    }
+
+    private async Task DeleteProject()
+    {
+        _isDeleting = true;
+
+        try
+        {
+            var result = await Mediator.Send(new DeleteProjectCommand(ProjectId));
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add($"Proyecto '{_project?.Name}' eliminado", Severity.Success);
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                Snackbar.Add(result.Error.Description, Severity.Error);
+                _showDeleteDialog = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private void HandleDocumentClick(Guid documentId)
+    {
+        Snackbar.Add($"Documento seleccionado: {documentId}", Severity.Info);
+    }
+
+    private void HandleFilesUploaded(List<IBrowserFile> files)
+    {
+        // TODO: Implement actual file upload via MediatR command
+        foreach (var file in files)
+        {
+            _documents.Add(new DocumentDto
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = ProjectId,
+                FileName = file.Name,
+                FileExtension = Path.GetExtension(file.Name),
+                FileSizeBytes = file.Size,
+                MimeType = file.ContentType,
+                Status = Babel.Domain.Enums.DocumentStatus.Pending,
+                IsVectorized = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        Snackbar.Add($"{files.Count} archivo(s) añadido(s) (pendiente de implementación)", Severity.Info);
+    }
+
+    private static string GetFileIcon(string extension) => extension.ToLower() switch
+    {
+        ".pdf" => Icons.Material.Filled.PictureAsPdf,
+        ".png" or ".jpg" or ".jpeg" => Icons.Material.Filled.Image,
+        ".docx" or ".doc" => Icons.Material.Filled.Article,
+        ".xlsx" or ".xls" => Icons.Material.Filled.TableChart,
+        ".txt" or ".md" => Icons.Material.Filled.TextSnippet,
+        _ => Icons.Material.Filled.InsertDriveFile
+    };
+
+    private static Color GetStatusColor(Babel.Domain.Enums.DocumentStatus status) => status switch
+    {
+        Babel.Domain.Enums.DocumentStatus.Completed => Color.Success,
+        Babel.Domain.Enums.DocumentStatus.Processing => Color.Info,
+        Babel.Domain.Enums.DocumentStatus.Pending => Color.Warning,
+        Babel.Domain.Enums.DocumentStatus.Failed => Color.Error,
+        Babel.Domain.Enums.DocumentStatus.PendingReview => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private static string GetStatusText(Babel.Domain.Enums.DocumentStatus status) => status switch
+    {
+        Babel.Domain.Enums.DocumentStatus.Completed => "Completado",
+        Babel.Domain.Enums.DocumentStatus.Processing => "Procesando",
+        Babel.Domain.Enums.DocumentStatus.Pending => "Pendiente",
+        Babel.Domain.Enums.DocumentStatus.Failed => "Error",
+        Babel.Domain.Enums.DocumentStatus.PendingReview => "Revisión",
+        _ => "Desconocido"
+    };
+}
