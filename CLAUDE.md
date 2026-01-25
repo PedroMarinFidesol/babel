@@ -170,28 +170,33 @@ ollama run llama2 "Hello"
 ## Estructura del Proyecto
 
 ```
-Babel.Domain/           - Entidades, ValueObjects, Interfaces de Dominio (sin dependencias)
-  ├── Entities/        - Project, Document, DocumentVersion
-  └── Enums/           - DocumentStatus, FileType
-Babel.Application/      - Commands, Queries, DTOs, Interfaces de Servicios (depende de Domain)
-  ├── Commands/        - CreateProjectCommand, UploadDocumentsCommand, ProcessOcrCommand
-  ├── Queries/         - GetProjectsQuery, SearchDocumentsQuery, ChatQuery
-  └── DTOs/            - ProjectDto, DocumentDto, ChatResponseDto (con referencias a documentos)
-Babel.Infrastructure/   - EF DbContext, Repositorios, Implementaciones de Servicios Externos
-  ├── Data/            - BabelDbContext, Migrations
-  ├── Repositories/    - ProjectRepository, DocumentRepository, QdrantRepository
-  ├── Services/        - OCR (con revisión), AI (Semantic Kernel), Storage, Vectorization
-  └── Jobs/            - OcrProcessingJob, DocumentVectorizationJob
-Babel.API/              - Controladores REST API, Program.cs
-Babel.WebUI/            - Páginas y Componentes de Blazor Server
-  ├── Pages/
-  │   ├── Index.razor           - Vista de tarjetas de proyectos (nombre + cantidad de archivos)
-  │   └── Project/
-  │       └── Detail.razor      - Detalle de proyecto con chat, lista de archivos, formulario de carga
-  └── Components/
-      ├── ChatWindow.razor      - Interfaz de chat con referencias a documentos
-      ├── FileList.razor        - Listado de documentos
-      └── FileUpload.razor      - Componente de carga por lotes
+src/
+├── Babel.Domain/           - Entidades, ValueObjects, Interfaces de Dominio (sin dependencias)
+│   ├── Entities/          - Project, Document, DocumentChunk, BaseEntity
+│   └── Enums/             - DocumentStatus, FileExtensionType
+├── Babel.Application/      - Commands, Queries, DTOs, Interfaces de Servicios (depende de Domain)
+│   ├── Commands/          - CreateProjectCommand, UploadDocumentsCommand, ProcessOcrCommand
+│   ├── Queries/           - GetProjectsQuery, SearchDocumentsQuery, ChatQuery
+│   └── DTOs/              - ProjectDto, DocumentDto, ChatResponseDto (con referencias a documentos)
+├── Babel.Infrastructure/   - EF DbContext, Repositorios, Implementaciones de Servicios Externos
+│   ├── Data/              - BabelDbContext, Migrations
+│   ├── Repositories/      - ProjectRepository, DocumentRepository, QdrantRepository
+│   ├── Services/          - OCR (con revisión), AI (Semantic Kernel), Storage, Vectorization
+│   └── Jobs/              - OcrProcessingJob, DocumentVectorizationJob
+├── Babel.API/              - Controladores REST API, Program.cs
+└── Babel.WebUI/            - Páginas y Componentes de Blazor Server (futuro)
+    ├── Pages/
+    │   ├── Index.razor           - Vista de tarjetas de proyectos (nombre + cantidad de archivos)
+    │   └── Project/
+    │       └── Detail.razor      - Detalle de proyecto con chat, lista de archivos, formulario de carga
+    └── Components/
+        ├── ChatWindow.razor      - Interfaz de chat con referencias a documentos
+        ├── FileList.razor        - Listado de documentos
+        └── FileUpload.razor      - Componente de carga por lotes
+
+tests/
+└── Babel.Domain.Tests/     - Tests unitarios para entidades de dominio (xUnit + FluentAssertions)
+    └── Entities/          - ProjectTests, DocumentTests, DocumentChunkTests
 ```
 
 ## Flujos de Trabajo Clave
@@ -243,22 +248,77 @@ Babel.WebUI/            - Páginas y Componentes de Blazor Server
 
 ### Modelo de Dominio
 
+El modelo de dominio sigue un patrón de chunking para vectorización, donde cada documento se divide en fragmentos que se almacenan individualmente en Qdrant.
+
+```
+┌──────────────┐       ┌──────────────────┐       ┌─────────────────┐
+│   PROJECT    │ 1   N │     DOCUMENT     │ 1   N │ DOCUMENT_CHUNK  │
+├──────────────┤───────├──────────────────┤───────├─────────────────┤
+│ Id           │       │ Id               │       │ Id              │
+│ Name         │       │ ProjectId (FK)   │       │ DocumentId (FK) │
+│ Description  │       │ FileName         │       │ ChunkIndex      │
+│ CreatedAt    │       │ FilePath (NAS)   │       │ Content         │
+│ UpdatedAt    │       │ FileSizeBytes    │       │ QdrantPointId ──┼──→ Qdrant
+└──────────────┘       │ Content          │       │ TokenCount      │
+                       │ IsVectorized     │       │ PageNumber      │
+                       │ Status           │       └─────────────────┘
+                       └──────────────────┘
+```
+
 **Entidad Project:**
 - Id (Guid)
 - Name (string)
+- Description (string?) - descripción opcional del proyecto
 - CreatedAt, UpdatedAt
 - Navigation: List<Document>
 
 **Entidad Document:**
 - Id (Guid)
 - ProjectId (FK)
-- FileName, FilePath, FileExtension
-- Status (enum: Pending, Processing, Completed, Failed)
-- Content (texto extraído)
-- RequiresOcr (bool - basado en extensión)
-- OcrReviewed (bool)
-- CreatedAt, ProcessedAt
-- Navigation: Project
+- **Información del archivo físico:**
+  - FileName (string) - nombre original del archivo
+  - FileExtension (string) - extensión incluyendo el punto (.pdf)
+  - FilePath (string) - ruta relativa en NAS
+  - FileSizeBytes (long) - tamaño en bytes
+  - ContentHash (string) - SHA256 para detectar duplicados
+  - MimeType (string) - tipo MIME (application/pdf, image/png)
+- **Clasificación:**
+  - FileType (enum: Unknown, TextBased, ImageBased, Pdf, OfficeDocument)
+- **Estado de procesamiento:**
+  - Status (enum: Pending, Processing, Completed, Failed, PendingReview)
+  - RequiresOcr (bool)
+  - OcrReviewed (bool)
+  - ProcessedAt (DateTime?)
+- **Contenido extraído:**
+  - Content (string?) - texto extraído del documento
+- **Vectorización:**
+  - IsVectorized (bool) - indica si está en Qdrant
+  - VectorizedAt (DateTime?)
+- Navigation: Project, List<DocumentChunk>
+
+**Entidad DocumentChunk (nueva):**
+- Id (Guid)
+- DocumentId (FK)
+- **Posición del chunk:**
+  - ChunkIndex (int) - índice dentro del documento (0, 1, 2...)
+  - StartCharIndex (int) - posición inicio en Content original
+  - EndCharIndex (int) - posición fin en Content original
+- **Contenido:**
+  - Content (string) - texto del chunk
+  - TokenCount (int) - tokens estimados
+- **Referencia a Qdrant:**
+  - QdrantPointId (Guid) - ID del punto en Qdrant
+- **Metadatos opcionales:**
+  - PageNumber (string?) - número de página si aplica
+  - SectionTitle (string?) - título de sección si se detecta
+- Navigation: Document
+
+### Decisiones de Diseño del Modelo
+
+1. **Sin versionado de documentos**: Los archivos se sobrescriben al actualizar
+2. **Chunking para RAG**: Los documentos se dividen en fragmentos para mejor precisión en búsqueda semántica
+3. **Hard delete**: Borrado físico inmediato (sin papelera)
+4. **Asociación con Qdrant**: Cada chunk tiene su propio QdrantPointId para búsqueda vectorial
 
 ### Requisitos de UI
 
@@ -379,6 +439,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260125_101719_diseno_entidades_dominio.md** - Diseño de entidades de dominio con DocumentChunk para chunking RAG
 - **20260125_093956_configuracion_secrets_appsettings.md** - Configuración de secrets con appsettings.local.json
 - **20260124_112606_proyecto_base_y_correccion_qdrant.md** - Creación de la estructura base del proyecto con Clean Architecture y corrección del error de QdrantClient
 
@@ -398,7 +459,15 @@ Cada documento de sesión contiene:
 - Migración inicial de base de datos creada
 - Swagger UI configurado
 
+**Fase 2 Completada:** ✅ Entidades de Dominio
+- Entidad Project mejorada con Description
+- Entidad Document con campos completos (FileSizeBytes, ContentHash, MimeType, etc.)
+- Nueva entidad DocumentChunk para chunking RAG
+- Proyecto de tests con 27 tests unitarios (xUnit + FluentAssertions)
+
 **Próxima Fase:** Gestión de Proyectos y Documentos
+- Crear migración EF para los nuevos campos
 - Implementar Commands/Queries con MediatR
 - Controllers para Projects y Documents
 - FileStorageService para almacenamiento de archivos
+- Servicio de chunking para dividir documentos

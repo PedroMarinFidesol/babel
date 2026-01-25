@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">2</div>
+                <div class="stat-value" id="total-sessions">3</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">4h</div>
+                <div class="stat-value" id="total-hours">5.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_101719',
+                date: '2026-01-25',
+                time: '10:17',
+                duration: '1.5h',
+                title: 'Diseño de Entidades de Dominio',
+                summary: 'Se diseñaron e implementaron las entidades de dominio mejoradas para gestionar proyectos y documentos. Se creó la nueva entidad DocumentChunk para soportar chunking en RAG con Qdrant. Se añadieron campos como FileSizeBytes, ContentHash, MimeType, IsVectorized a Document. Se creó proyecto de tests con 27 tests unitarios usando xUnit y FluentAssertions.',
+                tags: ['feature', 'test', 'documentation'],
+                docPath: 'sessions/20260125_101719_diseno_entidades_dominio.md'
+            },
             {
                 id: '20260125_093956',
                 date: '2026-01-25',
