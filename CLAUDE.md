@@ -104,6 +104,42 @@ Domain (Core) → Application (Casos de Uso) → Infrastructure (Implementacione
 6. **Módulo de IA**: Chat basado en RAG que devuelve respuestas con referencias a documentos fuente
 7. **Módulo de Jobs**: Procesadores en segundo plano de Hangfire para OCR y vectorización
 
+## Principios de Diseño
+
+Este proyecto sigue tres pilares fundamentales de diseño de software:
+
+### Domain-Driven Design (DDD)
+
+- **Ubiquitous Language**: Usar terminología consistente entre código y dominio de negocio (Project, Document, etc.)
+- **Bounded Contexts**: Cada módulo representa un contexto delimitado con responsabilidades claras
+- **Entities**: Objetos con identidad única (Project, Document)
+- **Value Objects**: Objetos inmutables sin identidad (ej. FileExtension, DocumentStatus)
+- **Aggregates**: Project es el aggregate root que gestiona sus Documents
+- **Domain Events**: Para comunicación desacoplada entre módulos
+- **Repositories**: Abstracciones para persistencia de aggregates
+
+### Clean Architecture
+
+- **Independencia de frameworks**: El dominio no depende de EF, ASP.NET u otros frameworks
+- **Testabilidad**: Las capas internas son fácilmente testeables sin dependencias externas
+- **Independencia de UI**: La lógica de negocio no conoce si se usa Blazor, API REST u otra UI
+- **Independencia de BD**: Se puede cambiar SQL Server por otra BD sin afectar el dominio
+- **Regla de dependencia**: Las dependencias solo apuntan hacia adentro (Domain ← Application ← Infrastructure ← Presentation)
+
+### Clean Code
+
+- **Nombres significativos**: Variables, métodos y clases con nombres que revelen intención
+- **Funciones pequeñas**: Métodos que hacen una sola cosa y la hacen bien
+- **Sin comentarios innecesarios**: El código debe ser autoexplicativo
+- **DRY (Don't Repeat Yourself)**: Evitar duplicación de lógica
+- **SOLID**:
+  - **S**ingle Responsibility: Cada clase tiene una única razón para cambiar
+  - **O**pen/Closed: Abierto para extensión, cerrado para modificación
+  - **L**iskov Substitution: Las clases derivadas deben ser sustituibles por sus bases
+  - **I**nterface Segregation: Interfaces específicas en lugar de una general
+  - **D**ependency Inversion: Depender de abstracciones, no de implementaciones
+- **Boy Scout Rule**: Dejar el código mejor de como lo encontraste
+
 ## Comandos de Desarrollo
 
 ### Compilar y Ejecutar
@@ -440,6 +476,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
 - **20260125_101719_diseno_entidades_dominio.md** - Diseño de entidades de dominio con DocumentChunk para chunking RAG
+- **20260125_101406_frontend_skill_mudblazor.md** - Creación de skill especializado para desarrollo frontend con MudBlazor
 - **20260125_093956_configuracion_secrets_appsettings.md** - Configuración de secrets con appsettings.local.json
 - **20260124_112606_proyecto_base_y_correccion_qdrant.md** - Creación de la estructura base del proyecto con Clean Architecture y corrección del error de QdrantClient
 
