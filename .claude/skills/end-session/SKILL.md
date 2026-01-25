@@ -74,45 +74,8 @@ Añade la nueva sesión a la sección "## Historial de Sesiones" en CLAUDE.md:
 - **{timestamp}_{descripcion}.md** - Descripción breve de la sesión
 ```
 
-### Paso 5: Solicitar Nombre de Rama
 
-Usa AskUserQuestion para preguntar al usuario:
-
-**Pregunta:** "¿Quieres que haga push de los cambios al repositorio remoto?"
-
-**Opciones:**
-1. "Sí, hacer push" - Subir commits pendientes a origin/main
-2. "No, solo commit local" - Dejar los commits sin subir
-
-### Paso 6: Git Add, Commit y Push
-
-```bash
-# Añadir archivos de documentación
-git add docs/sessions/{timestamp}_*.md
-git add docs/dev-diary.html
-git add CLAUDE.md
-git add .claude/
-
-# Si hay otros archivos modificados relevantes a la sesión, añadirlos
-git status
-
-# Crear commit
-git commit -m "$(cat <<'EOF'
-docs: add session {timestamp} - {descripción breve}
-
-- Add session documentation
-- Update dev-diary.html with new session entry
-- Update CLAUDE.md with session reference
-
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
-EOF
-)"
-
-# Push si el usuario lo solicitó
-git push
-```
-
-### Paso 7: Mensaje Final
+### Paso 5: Mensaje Final
 
 Informa al usuario con una tabla de resumen:
 
@@ -121,8 +84,7 @@ Informa al usuario con una tabla de resumen:
 | Documento de sesión creado | ✅ `docs/sessions/{timestamp}_descripcion.md` |
 | Diario de desarrollo actualizado | ✅ `docs/dev-diary.html` |
 | CLAUDE.md actualizado | ✅ Nueva sesión referenciada |
-| Commit realizado | ✅ {mensaje del commit} |
-| Push al remoto | ✅/❌ Según elección del usuario |
+
 
 ## Tags Disponibles
 
