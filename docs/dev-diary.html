@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">5</div>
+                <div class="stat-value" id="total-sessions">6</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">7.5h</div>
+                <div class="stat-value" id="total-hours">9.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_164840',
+                date: '2026-01-25',
+                time: '16:48',
+                duration: '2.0h',
+                title: 'Fase 1: Infraestructura y Base de Datos',
+                summary: 'Implementación completa de la Fase 1: Docker Compose (SQL Server, Qdrant, Azure OCR), migraciones EF Core con DocumentChunk, clases de configuración Options Pattern, QdrantInitializationService, ConfigurationValidator, BabelDbContextFactory. Creación de PLAN_DESARROLLO.md con roadmap de 11 fases y QUICKSTART.md. Corrección de skill end-session para eliminar operaciones git automáticas.',
+                tags: ['setup', 'feature', 'documentation'],
+                docPath: 'sessions/20260125_164840_fase1_infraestructura.md'
+            },
             {
                 id: '20260125_105026',
                 date: '2026-01-25',

@@ -473,6 +473,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260125_164840_fase1_infraestructura.md** - Fase 1: Docker Compose, migraciones EF, QdrantInitializationService, ConfigurationValidator, PLAN_DESARROLLO.md
 - **20260125_105026_layout_webui_mudblazor.md** - Layout inicial de Babel.WebUI con MudBlazor 8.0, componentes de chat, upload y tarjetas de proyecto
 - **20260125_101719_diseno_entidades_dominio.md** - Diseño de entidades de dominio con DocumentChunk para chunking RAG
 - **20260125_101406_frontend_skill_mudblazor.md** - Creación de skill especializado para desarrollo frontend con MudBlazor
