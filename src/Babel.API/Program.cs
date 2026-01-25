@@ -2,6 +2,9 @@ using Babel.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load local settings with secrets (not committed to git)
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

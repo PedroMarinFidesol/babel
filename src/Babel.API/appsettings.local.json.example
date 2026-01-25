@@ -1,0 +1,8 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=BabelDb;User Id=sa;Password=YOUR_PASSWORD_HERE;TrustServerCertificate=True;Encrypt=True;"
+  },
+  "AzureComputerVision": {
+    "ApiKey": "YOUR_AZURE_COMPUTER_VISION_API_KEY_HERE"
+  }
+}
