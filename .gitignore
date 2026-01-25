@@ -45,6 +45,18 @@ CodeCoverage/
 appsettings.local.json
 appsettings.*.local.json
 
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+
+# Upload directories
+uploads/
+uploads-dev/
+
+# Docker volumes (if local)
+.docker-data/
+
 # MSBuild Binary and Structured Log
 *.binlog
 

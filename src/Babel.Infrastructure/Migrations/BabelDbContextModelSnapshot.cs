@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Babel.Infrastructure.Data.Migrations
+namespace Babel.Infrastructure.Migrations
 {
     [DbContext(typeof(BabelDbContext))]
     partial class BabelDbContextModelSnapshot : ModelSnapshot
@@ -32,6 +32,11 @@ namespace Babel.Infrastructure.Data.Migrations
                         .HasMaxLength(2147483647)
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -50,6 +55,23 @@ namespace Babel.Infrastructure.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsVectorized")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("OcrReviewed")
                         .HasColumnType("bit");
 
@@ -64,16 +86,76 @@ namespace Babel.Infrastructure.Data.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VectorizedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentHash");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("Babel.Domain.Entities.DocumentChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ChunkIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2147483647)
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("EndCharIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PageNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("QdrantPointId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SectionTitle")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StartCharIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TokenCount")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("QdrantPointId");
 
-                    b.ToTable("Documents");
+                    b.HasIndex("DocumentId", "ChunkIndex")
+                        .IsUnique();
+
+                    b.ToTable("DocumentChunks");
                 });
 
             modelBuilder.Entity("Babel.Domain.Entities.Project", b =>
@@ -85,6 +167,10 @@ namespace Babel.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -94,6 +180,8 @@ namespace Babel.Infrastructure.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name");
 
                     b.ToTable("Projects");
                 });
@@ -107,6 +195,22 @@ namespace Babel.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Babel.Domain.Entities.DocumentChunk", b =>
+                {
+                    b.HasOne("Babel.Domain.Entities.Document", "Document")
+                        .WithMany("Chunks")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Babel.Domain.Entities.Document", b =>
+                {
+                    b.Navigation("Chunks");
                 });
 
             modelBuilder.Entity("Babel.Domain.Entities.Project", b =>

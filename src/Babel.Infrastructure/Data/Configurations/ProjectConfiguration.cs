@@ -10,9 +10,15 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
     {
         builder.HasKey(p => p.Id);
 
+        // Índice para búsquedas por nombre
+        builder.HasIndex(p => p.Name);
+
         builder.Property(p => p.Name)
             .IsRequired()
             .HasMaxLength(200);
+
+        builder.Property(p => p.Description)
+            .HasMaxLength(2000);
 
         builder.Property(p => p.CreatedAt)
             .IsRequired();

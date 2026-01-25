@@ -1,6 +1,7 @@
 using Babel.Application.Interfaces;
 using Babel.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Reflection;
 
 namespace Babel.Infrastructure.Data;
@@ -13,6 +14,17 @@ public class BabelDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<Document> Documents => Set<Document>();
+    public DbSet<DocumentChunk> DocumentChunks => Set<DocumentChunk>();
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        // Suprimir warning de cambios pendientes en el modelo
+        // Este warning puede aparecer incorrectamente en .NET 10 cuando no hay cambios reales
+        optionsBuilder.ConfigureWarnings(warnings =>
+            warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
