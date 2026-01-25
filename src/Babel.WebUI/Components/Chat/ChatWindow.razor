@@ -1,0 +1,158 @@
+@inject MockDataService MockDataService
+@inject IJSRuntime JS
+
+<MudPaper Elevation="2" Class="d-flex flex-column" Style="height: 500px;">
+    <MudToolBar Dense="true" Class="px-4">
+        <MudIcon Icon="@Icons.Material.Filled.Chat" Class="mr-2" />
+        <MudText Typo="Typo.subtitle1">Chat RAG</MudText>
+        <MudSpacer />
+        <MudTooltip Text="Limpiar conversacion">
+            <MudIconButton Icon="@Icons.Material.Filled.DeleteSweep"
+                           Size="Size.Small"
+                           OnClick="@ClearChat"
+                           Disabled="@(_messages.Count == 0)" />
+        </MudTooltip>
+    </MudToolBar>
+
+    <MudDivider />
+
+    <div @ref="_chatContainer" class="flex-grow-1 overflow-auto pa-4" style="background-color: var(--mud-palette-background-grey);">
+        @if (_messages.Count == 0)
+        {
+            <div class="d-flex flex-column align-center justify-center" style="height: 100%;">
+                <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary">No hay mensajes</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Escribe una pregunta sobre los documentos del proyecto</MudText>
+            </div>
+        }
+        else
+        {
+            @foreach (var message in _messages)
+            {
+                <ChatMessage Message="@message" OnReferenceClick="@HandleReferenceClick" />
+            }
+
+            @if (_isProcessing)
+            {
+                <div class="d-flex align-center pa-2 mb-2">
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Analizando documentos...</MudText>
+                </div>
+            }
+        }
+    </div>
+
+    <MudDivider />
+
+    <div class="pa-3">
+        <MudTextField @bind-Value="_currentMessage"
+                      Placeholder="Escribe tu pregunta..."
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Send"
+                      AdornmentColor="Color.Primary"
+                      OnAdornmentClick="@SendMessageAsync"
+                      OnKeyUp="@HandleKeyUp"
+                      Disabled="@_isProcessing"
+                      Immediate="true"
+                      FullWidth="true"
+                      Margin="Margin.None" />
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnDocumentReferenceClick { get; set; }
+
+    private List<ChatMessageDto> _messages = [];
+    private string _currentMessage = "";
+    private bool _isProcessing;
+    private ElementReference _chatContainer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _messages = await MockDataService.GetChatHistoryAsync(ProjectId);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_messages.Count > 0)
+        {
+            await ScrollToBottomAsync();
+        }
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !string.IsNullOrWhiteSpace(_currentMessage))
+        {
+            await SendMessageAsync();
+        }
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_currentMessage) || _isProcessing) return;
+
+        var userMessage = _currentMessage.Trim();
+        _currentMessage = "";
+        _isProcessing = true;
+
+        // Add user message immediately
+        _messages.Add(new ChatMessageDto
+        {
+            Content = userMessage,
+            IsUser = true,
+            Timestamp = DateTime.UtcNow
+        });
+
+        StateHasChanged();
+        await ScrollToBottomAsync();
+
+        try
+        {
+            // Get AI response (mock)
+            var response = await MockDataService.SendChatMessageAsync(ProjectId, userMessage);
+            _messages.Add(response);
+        }
+        catch
+        {
+            _messages.Add(new ChatMessageDto
+            {
+                Content = "Lo siento, hubo un error al procesar tu pregunta. Por favor, intenta de nuevo.",
+                IsUser = false,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+        finally
+        {
+            _isProcessing = false;
+            await ScrollToBottomAsync();
+        }
+    }
+
+    private void ClearChat()
+    {
+        _messages.Clear();
+    }
+
+    private async Task HandleReferenceClick(Guid documentId)
+    {
+        await OnDocumentReferenceClick.InvokeAsync(documentId);
+    }
+
+    private async Task ScrollToBottomAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToBottom", _chatContainer);
+        }
+        catch
+        {
+            // Ignore JS interop errors during prerendering
+        }
+    }
+}

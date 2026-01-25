@@ -1,0 +1,226 @@
+@inject ISnackbar Snackbar
+
+<MudPaper Elevation="0"
+          Class="@GetDropZoneClass()"
+          Style="border: 2px dashed var(--mud-palette-lines-default); border-radius: 8px; transition: all 0.2s ease;"
+          @ondragenter="HandleDragEnter"
+          @ondragleave="HandleDragLeave"
+          @ondragover:preventDefault
+          @ondrop="HandleDrop">
+
+    <InputFile OnChange="@HandleFileSelection"
+               multiple
+               accept="@AcceptedFileTypes"
+               id="@_inputId"
+               hidden />
+
+    <div class="d-flex flex-column align-center justify-center pa-8" style="min-height: 160px;">
+        @if (_isUploading)
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" Class="mb-4" />
+            <MudText Typo="Typo.body1">Subiendo archivos...</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@_uploadProgress</MudText>
+        }
+        else if (_selectedFiles.Count > 0)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mb-2" />
+            <MudText Typo="Typo.body1" Class="mb-2">@_selectedFiles.Count archivo(s) seleccionado(s)</MudText>
+
+            <MudList T="string" Dense="true" Class="mb-4" Style="max-height: 150px; overflow-y: auto; width: 100%;">
+                @foreach (var file in _selectedFiles)
+                {
+                    <MudListItem T="string" Dense="true">
+                        <div class="d-flex align-center justify-space-between" style="width: 100%;">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@GetFileIcon(file.Name)" Size="Size.Small" Class="mr-2" Color="Color.Secondary" />
+                                <MudText Typo="Typo.body2">@TruncateFileName(file.Name, 30)</MudText>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@FormatFileSize(file.Size)</MudText>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+
+            <div class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                           OnClick="@UploadFilesAsync"
+                           Disabled="@_isUploading">
+                    Subir Archivos
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="@ClearSelection"
+                           Disabled="@_isUploading">
+                    Cancelar
+                </MudButton>
+            </div>
+        }
+        else
+        {
+            <MudIcon Icon="@(_isDragOver ? Icons.Material.Filled.FileDownload : Icons.Material.Filled.CloudUpload)"
+                     Color="@(_isDragOver ? Color.Primary : Color.Secondary)"
+                     Size="Size.Large"
+                     Class="mb-2" />
+            <MudText Typo="Typo.body1" Class="mb-1">
+                @(_isDragOver ? "Suelta los archivos aqui" : "Arrastra y suelta archivos")
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                o
+            </MudText>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.FolderOpen"
+                       HtmlTag="label"
+                       for="@_inputId">
+                Seleccionar Archivos
+            </MudButton>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                Formatos permitidos: PDF, PNG, JPG, DOCX, XLSX, TXT (max @MaxFileSizeMB MB)
+            </MudText>
+        }
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    [Parameter]
+    public EventCallback<List<IBrowserFile>> OnFilesUploaded { get; set; }
+
+    [Parameter]
+    public int MaxFileSizeMB { get; set; } = 50;
+
+    [Parameter]
+    public string AcceptedFileTypes { get; set; } = ".pdf,.png,.jpg,.jpeg,.docx,.xlsx,.txt,.md,.json,.xml";
+
+    private readonly string _inputId = $"file-upload-{Guid.NewGuid():N}";
+    private List<IBrowserFile> _selectedFiles = [];
+    private bool _isDragOver;
+    private bool _isUploading;
+    private string _uploadProgress = "";
+
+    private void HandleDragEnter()
+    {
+        _isDragOver = true;
+    }
+
+    private void HandleDragLeave()
+    {
+        _isDragOver = false;
+    }
+
+    private void HandleDrop(DragEventArgs e)
+    {
+        _isDragOver = false;
+        // Note: File data from drag-drop is handled by InputFile component
+    }
+
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        _selectedFiles.Clear();
+        var maxSize = MaxFileSizeMB * 1024 * 1024;
+
+        foreach (var file in e.GetMultipleFiles(100))
+        {
+            if (file.Size > maxSize)
+            {
+                Snackbar.Add($"El archivo {file.Name} excede el tamano maximo de {MaxFileSizeMB}MB", Severity.Warning);
+                continue;
+            }
+
+            _selectedFiles.Add(file);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task UploadFilesAsync()
+    {
+        if (_selectedFiles.Count == 0) return;
+
+        _isUploading = true;
+        _uploadProgress = $"0 / {_selectedFiles.Count} archivos";
+
+        try
+        {
+            var uploadedFiles = new List<IBrowserFile>();
+
+            for (int i = 0; i < _selectedFiles.Count; i++)
+            {
+                _uploadProgress = $"{i + 1} / {_selectedFiles.Count} archivos";
+                StateHasChanged();
+
+                // Simulate upload delay (replace with actual upload logic)
+                await Task.Delay(500);
+
+                uploadedFiles.Add(_selectedFiles[i]);
+            }
+
+            await OnFilesUploaded.InvokeAsync(uploadedFiles);
+            Snackbar.Add($"{uploadedFiles.Count} archivo(s) subido(s) correctamente", Severity.Success);
+
+            _selectedFiles.Clear();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al subir archivos: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private void ClearSelection()
+    {
+        _selectedFiles.Clear();
+    }
+
+    private string GetDropZoneClass()
+    {
+        return _isDragOver ? "drop-zone-active" : "";
+    }
+
+    private static string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLower();
+        return extension switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".png" or ".jpg" or ".jpeg" => Icons.Material.Filled.Image,
+            ".docx" or ".doc" => Icons.Material.Filled.Article,
+            ".xlsx" or ".xls" => Icons.Material.Filled.TableChart,
+            ".txt" or ".md" => Icons.Material.Filled.TextSnippet,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        string[] sizes = ["B", "KB", "MB", "GB"];
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private static string TruncateFileName(string name, int maxLength)
+    {
+        if (name.Length <= maxLength) return name;
+
+        var extension = Path.GetExtension(name);
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(name);
+        var maxNameLength = maxLength - extension.Length - 3;
+
+        if (maxNameLength <= 0) return name[..maxLength];
+
+        return nameWithoutExt[..maxNameLength] + "..." + extension;
+    }
+}

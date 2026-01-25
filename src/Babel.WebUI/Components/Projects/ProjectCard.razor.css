@@ -1,0 +1,20 @@
+.project-card {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    height: 100%;
+}
+
+.project-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.project-card-new {
+    border: 2px dashed var(--mud-palette-primary);
+    background-color: transparent;
+}
+
+.project-card-new:hover {
+    border-color: var(--mud-palette-primary-darken);
+    background-color: var(--mud-palette-primary-hover);
+}

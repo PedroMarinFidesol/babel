@@ -1,0 +1,86 @@
+@if (Message != null)
+{
+    <div class="@GetMessageContainerClass() mb-3">
+        <MudPaper Elevation="1" Class="@($"{GetMessageClass()} pa-3")" Style="@GetMessageStyle()">
+            <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@Message.Content</MudText>
+
+            @if (!Message.IsUser && Message.References.Count > 0)
+            {
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                    Documentos referenciados:
+                </MudText>
+                <div class="d-flex flex-wrap gap-1">
+                    @foreach (var reference in Message.References)
+                    {
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="Color.Info"
+                                 Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Filled.Description"
+                                 OnClick="@(() => OnReferenceClick.InvokeAsync(reference.DocumentId))"
+                                 Style="cursor: pointer;">
+                            @TruncateFileName(reference.FileName, 20)
+                        </MudChip>
+                    }
+                </div>
+            }
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="@GetTimestampClass()">
+            @Message.Timestamp.ToString("HH:mm")
+        </MudText>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ChatMessageDto? Message { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnReferenceClick { get; set; }
+
+    private string GetMessageContainerClass()
+    {
+        return Message?.IsUser == true
+            ? "d-flex flex-column align-end"
+            : "d-flex flex-column align-start";
+    }
+
+    private string GetMessageClass()
+    {
+        return Message?.IsUser == true
+            ? "chat-message-user"
+            : "chat-message-assistant";
+    }
+
+    private string GetMessageStyle()
+    {
+        var baseStyle = "max-width: 80%; border-radius: 12px;";
+
+        if (Message?.IsUser == true)
+        {
+            return baseStyle + " background-color: var(--mud-palette-primary); color: var(--mud-palette-primary-text);";
+        }
+
+        return baseStyle;
+    }
+
+    private string GetTimestampClass()
+    {
+        return Message?.IsUser == true ? "mr-1 mt-1" : "ml-1 mt-1";
+    }
+
+    private static string TruncateFileName(string name, int maxLength)
+    {
+        if (name.Length <= maxLength) return name;
+
+        var extension = Path.GetExtension(name);
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(name);
+        var maxNameLength = maxLength - extension.Length - 3;
+
+        if (maxNameLength <= 0) return name[..maxLength];
+
+        return nameWithoutExt[..maxNameLength] + "..." + extension;
+    }
+}

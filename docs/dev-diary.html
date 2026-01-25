@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">4</div>
+                <div class="stat-value" id="total-sessions">5</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">6h</div>
+                <div class="stat-value" id="total-hours">7.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260125_105026',
+                date: '2026-01-25',
+                time: '10:50',
+                duration: '1.5h',
+                title: 'Layout Inicial WebUI con MudBlazor',
+                summary: 'Se creo el proyecto Babel.WebUI con Blazor Server y MudBlazor 8.0. Se implemento el layout principal con AppBar, Drawer y tema claro/oscuro. Se crearon componentes: ServiceStatusIndicator (health checks), ProjectCard, FileUpload (drag-and-drop), ChatWindow y ChatMessage (chat RAG). Se anadieron DTOs ProjectDto, DocumentDto y ChatMessageDto. Datos mock con 3 proyectos de ejemplo.',
+                tags: ['feature', 'setup'],
+                docPath: 'sessions/20260125_105026_layout_webui_mudblazor.md'
+            },
             {
                 id: '20260125_101719',
                 date: '2026-01-25',

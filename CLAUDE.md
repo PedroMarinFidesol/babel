@@ -475,6 +475,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260125_105026_layout_webui_mudblazor.md** - Layout inicial de Babel.WebUI con MudBlazor 8.0, componentes de chat, upload y tarjetas de proyecto
 - **20260125_101719_diseno_entidades_dominio.md** - Diseño de entidades de dominio con DocumentChunk para chunking RAG
 - **20260125_101406_frontend_skill_mudblazor.md** - Creación de skill especializado para desarrollo frontend con MudBlazor
 - **20260125_093956_configuracion_secrets_appsettings.md** - Configuración de secrets con appsettings.local.json
@@ -502,9 +503,17 @@ Cada documento de sesión contiene:
 - Nueva entidad DocumentChunk para chunking RAG
 - Proyecto de tests con 27 tests unitarios (xUnit + FluentAssertions)
 
+**Fase 3 Completada:** ✅ Layout Inicial WebUI
+- Proyecto Babel.WebUI con Blazor Server + MudBlazor 8.0
+- Layout con AppBar, Drawer y tema claro/oscuro
+- ServiceStatusIndicator para health checks
+- ProjectCard, FileUpload, ChatWindow, ChatMessage
+- DTOs: ProjectDto, DocumentDto, ChatMessageDto
+- MockDataService con 3 proyectos de ejemplo
+
 **Próxima Fase:** Gestión de Proyectos y Documentos
 - Crear migración EF para los nuevos campos
 - Implementar Commands/Queries con MediatR
-- Controllers para Projects y Documents
+- Conectar WebUI con servicios reales (sin mock)
 - FileStorageService para almacenamiento de archivos
 - Servicio de chunking para dividir documentos

@@ -1,0 +1,123 @@
+@if (IsCreateNew)
+{
+    <MudCard Class="project-card project-card-new" Elevation="0" @onclick="OnCreateClick">
+        <MudCardContent Class="d-flex flex-column align-center justify-center" Style="height: 200px;">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+            <MudText Typo="Typo.h6" Color="Color.Primary">Nuevo Proyecto</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Crear un proyecto vacio</MudText>
+        </MudCardContent>
+    </MudCard>
+}
+else if (Project != null)
+{
+    <MudCard Class="project-card" Elevation="2" @onclick="@(() => OnCardClick.InvokeAsync(Project))">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">@Project.Name</MudText>
+            </CardHeaderContent>
+            <CardHeaderActions>
+                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" Size="Size.Small" />
+            </CardHeaderActions>
+        </MudCardHeader>
+
+        <MudCardContent>
+            @if (!string.IsNullOrEmpty(Project.Description))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" Style="min-height: 40px;">
+                    @TruncateDescription(Project.Description, 80)
+                </MudText>
+            }
+
+            <div class="d-flex justify-space-between align-center mt-2">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" Color="Color.Secondary" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @Project.TotalDocuments documentos
+                    </MudText>
+                </div>
+            </div>
+
+            <MudProgressLinear Color="@GetProgressColor()" Value="@GetProgressValue()" Class="mt-3" Rounded="true" Size="Size.Small" />
+
+            <div class="d-flex justify-space-between mt-1">
+                <MudText Typo="Typo.caption" Color="Color.Success">
+                    @Project.ProcessedDocuments procesados
+                </MudText>
+                @if (Project.PendingDocuments > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Warning">
+                        @Project.PendingDocuments pendientes
+                    </MudText>
+                }
+            </div>
+        </MudCardContent>
+
+        <MudCardActions>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.OpenInNew"
+                       OnClick="@(() => OnCardClick.InvokeAsync(Project))"
+                       Size="Size.Small">
+                Abrir
+            </MudButton>
+            <MudSpacer />
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @FormatDate(Project.UpdatedAt)
+            </MudText>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public ProjectDto? Project { get; set; }
+
+    [Parameter]
+    public bool IsCreateNew { get; set; }
+
+    [Parameter]
+    public EventCallback<ProjectDto> OnCardClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnCreate { get; set; }
+
+    private async Task OnCreateClick()
+    {
+        await OnCreate.InvokeAsync();
+    }
+
+    private double GetProgressValue()
+    {
+        if (Project == null || Project.TotalDocuments == 0) return 0;
+        return (double)Project.ProcessedDocuments / Project.TotalDocuments * 100;
+    }
+
+    private Color GetProgressColor()
+    {
+        var progress = GetProgressValue();
+        return progress >= 100 ? Color.Success :
+               progress >= 50 ? Color.Info :
+               Color.Warning;
+    }
+
+    private static string TruncateDescription(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        return text[..maxLength] + "...";
+    }
+
+    private static string FormatDate(DateTime date)
+    {
+        var diff = DateTime.UtcNow - date;
+
+        if (diff.TotalMinutes < 60)
+            return $"hace {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24)
+            return $"hace {(int)diff.TotalHours} h";
+        if (diff.TotalDays < 7)
+            return $"hace {(int)diff.TotalDays} dias";
+
+        return date.ToString("dd/MM/yyyy");
+    }
+}

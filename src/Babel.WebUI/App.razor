@@ -1,0 +1,27 @@
+@using MudBlazor
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Shared.MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(Shared.MainLayout)">
+            <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-16">
+                <MudPaper Elevation="3" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Warning" Class="mb-4" />
+                    <MudText Typo="Typo.h4" Class="mb-4">Pagina no encontrada</MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4">Lo sentimos, la pagina que buscas no existe.</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">
+                        Volver al inicio
+                    </MudButton>
+                </MudPaper>
+            </MudContainer>
+        </LayoutView>
+    </NotFound>
+</Router>

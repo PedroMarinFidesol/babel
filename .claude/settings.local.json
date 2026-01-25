@@ -18,7 +18,21 @@
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet tool:*)",
       "Bash(dotnet tool install:*)",
-      "Bash(dotnet --list-sdks:*)"
+      "Bash(dotnet --list-sdks:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: remove secrets from session documentation\n\n- Replace Azure API key with placeholder\n- Replace SQL password with placeholder\n- Resolve merge conflicts\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(dir \"C:\\\\Users\\\\pmarin\\\\babel\\\\.claude\\\\skills\")",
+      "Bash(dir \"C:\\\\Users\\\\pmarin\\\\babel\\\\.claude\")",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "mcp__plugin_context7_context7__query-docs"
     ]
   }
 }

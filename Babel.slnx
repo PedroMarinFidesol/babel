@@ -4,6 +4,7 @@
     <Project Path="src/Babel.Application/Babel.Application.csproj" />
     <Project Path="src/Babel.Domain/Babel.Domain.csproj" />
     <Project Path="src/Babel.Infrastructure/Babel.Infrastructure.csproj" />
+    <Project Path="src/Babel.WebUI/Babel.WebUI.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Babel.Domain.Tests/Babel.Domain.Tests.csproj" />

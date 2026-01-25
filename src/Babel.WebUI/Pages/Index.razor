@@ -1,0 +1,201 @@
+@page "/"
+@inject MockDataService MockDataService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Babel - Inicio</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4">Proyectos</MudText>
+
+<MudGrid>
+    @foreach (var project in _projects)
+    {
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <ProjectCard Project="@project" OnCardClick="@NavigateToProject" />
+        </MudItem>
+    }
+
+    <MudItem xs="12" sm="6" md="4" lg="3">
+        <ProjectCard IsCreateNew="true" OnCreate="@ShowCreateProjectDialog" />
+    </MudItem>
+</MudGrid>
+
+@* Demo Section - Shows components in action *@
+<MudDivider Class="my-8" />
+
+<MudText Typo="Typo.h5" Class="mb-4">Demostracion de Componentes</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h6" Class="mb-2">Chat RAG</MudText>
+        <ChatWindow ProjectId="@_selectedProjectId" OnDocumentReferenceClick="@HandleDocumentClick" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h6" Class="mb-2">Subida de Archivos</MudText>
+        <FileUpload ProjectId="@_selectedProjectId" OnFilesUploaded="@HandleFilesUploaded" />
+
+        <MudText Typo="Typo.h6" Class="mb-2 mt-6">Documentos del Proyecto</MudText>
+        <MudPaper Elevation="2" Class="pa-4">
+            @if (_documents.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-center pa-4">
+                    No hay documentos en este proyecto
+                </MudText>
+            }
+            else
+            {
+                <MudTable Items="@_documents" Dense="true" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Nombre</MudTh>
+                        <MudTh>Tamano</MudTh>
+                        <MudTh>Estado</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Nombre">
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@GetFileIcon(context.FileExtension)" Size="Size.Small" Class="mr-2" />
+                                @context.FileName
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="Tamano">@context.FileSizeFormatted</MudTd>
+                        <MudTd DataLabel="Estado">
+                            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
+                                @GetStatusText(context.Status)
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* Create Project Dialog *@
+<MudDialog @bind-Visible="_showCreateDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.CreateNewFolder" Class="mr-2" />
+            Nuevo Proyecto
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_newProjectName"
+                      Label="Nombre del proyecto"
+                      Variant="Variant.Outlined"
+                      Required="true"
+                      Class="mb-4" />
+        <MudTextField @bind-Value="_newProjectDescription"
+                      Label="Descripcion (opcional)"
+                      Variant="Variant.Outlined"
+                      Lines="3" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showCreateDialog = false)">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="@CreateProject"
+                   Disabled="@string.IsNullOrWhiteSpace(_newProjectName)">
+            Crear
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<ProjectDto> _projects = [];
+    private List<DocumentDto> _documents = [];
+    private Guid _selectedProjectId;
+
+    private bool _showCreateDialog;
+    private string _newProjectName = "";
+    private string _newProjectDescription = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _projects = await MockDataService.GetProjectsAsync();
+
+        if (_projects.Count > 0)
+        {
+            _selectedProjectId = _projects[0].Id;
+            _documents = await MockDataService.GetDocumentsByProjectIdAsync(_selectedProjectId);
+        }
+    }
+
+    private void NavigateToProject(ProjectDto project)
+    {
+        // For now, just show a snackbar (page not implemented yet)
+        Snackbar.Add($"Navegando a proyecto: {project.Name}", Severity.Info);
+        // Navigation.NavigateTo($"/project/{project.Id}");
+    }
+
+    private void ShowCreateProjectDialog()
+    {
+        _newProjectName = "";
+        _newProjectDescription = "";
+        _showCreateDialog = true;
+    }
+
+    private void CreateProject()
+    {
+        // Mock create - just show snackbar
+        Snackbar.Add($"Proyecto '{_newProjectName}' creado (mock)", Severity.Success);
+        _showCreateDialog = false;
+
+        // In real implementation, this would call a MediatR command
+    }
+
+    private void HandleDocumentClick(Guid documentId)
+    {
+        Snackbar.Add($"Documento seleccionado: {documentId}", Severity.Info);
+    }
+
+    private void HandleFilesUploaded(List<IBrowserFile> files)
+    {
+        // In real implementation, this would call a MediatR command
+        foreach (var file in files)
+        {
+            _documents.Add(new DocumentDto
+            {
+                Id = Guid.NewGuid(),
+                ProjectId = _selectedProjectId,
+                FileName = file.Name,
+                FileExtension = Path.GetExtension(file.Name),
+                FileSizeBytes = file.Size,
+                MimeType = file.ContentType,
+                Status = Babel.Domain.Enums.DocumentStatus.Pending,
+                IsVectorized = false,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static string GetFileIcon(string extension) => extension.ToLower() switch
+    {
+        ".pdf" => Icons.Material.Filled.PictureAsPdf,
+        ".png" or ".jpg" or ".jpeg" => Icons.Material.Filled.Image,
+        ".docx" or ".doc" => Icons.Material.Filled.Article,
+        ".xlsx" or ".xls" => Icons.Material.Filled.TableChart,
+        ".txt" or ".md" => Icons.Material.Filled.TextSnippet,
+        _ => Icons.Material.Filled.InsertDriveFile
+    };
+
+    private static Color GetStatusColor(Babel.Domain.Enums.DocumentStatus status) => status switch
+    {
+        Babel.Domain.Enums.DocumentStatus.Completed => Color.Success,
+        Babel.Domain.Enums.DocumentStatus.Processing => Color.Info,
+        Babel.Domain.Enums.DocumentStatus.Pending => Color.Warning,
+        Babel.Domain.Enums.DocumentStatus.Failed => Color.Error,
+        Babel.Domain.Enums.DocumentStatus.PendingReview => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private static string GetStatusText(Babel.Domain.Enums.DocumentStatus status) => status switch
+    {
+        Babel.Domain.Enums.DocumentStatus.Completed => "Completado",
+        Babel.Domain.Enums.DocumentStatus.Processing => "Procesando",
+        Babel.Domain.Enums.DocumentStatus.Pending => "Pendiente",
+        Babel.Domain.Enums.DocumentStatus.Failed => "Error",
+        Babel.Domain.Enums.DocumentStatus.PendingReview => "Revision",
+        _ => "Desconocido"
+    };
+}
