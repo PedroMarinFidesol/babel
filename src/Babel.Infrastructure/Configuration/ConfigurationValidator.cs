@@ -73,15 +73,18 @@ public class ConfigurationValidator
 
     private void ValidateQdrant()
     {
-        var endpoint = _configuration["Qdrant:Endpoint"];
+        var host = _configuration["Qdrant:Host"];
 
-        if (string.IsNullOrWhiteSpace(endpoint))
+        if (string.IsNullOrWhiteSpace(host))
         {
-            _errors.Add("Qdrant:Endpoint no está configurado");
+            _warnings.Add("Qdrant:Host no está configurado. Se usará 'localhost'.");
         }
-        else if (!Uri.TryCreate(endpoint, UriKind.Absolute, out _))
+
+        var grpcPort = _configuration.GetValue<int>("Qdrant:GrpcPort");
+
+        if (grpcPort <= 0 || grpcPort > 65535)
         {
-            _errors.Add($"Qdrant:Endpoint no es una URL válida: {endpoint}");
+            _warnings.Add("Qdrant:GrpcPort no está configurado o es inválido. Se usará 6334.");
         }
 
         var collectionName = _configuration["Qdrant:CollectionName"];

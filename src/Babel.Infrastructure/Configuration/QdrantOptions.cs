@@ -10,8 +10,14 @@ public class QdrantOptions
     public const string SectionName = "Qdrant";
 
     [Required]
-    [Url]
-    public string Endpoint { get; set; } = "http://localhost:6333";
+    [MinLength(1)]
+    public string Host { get; set; } = "localhost";
+
+    [Range(1, 65535)]
+    public int GrpcPort { get; set; } = 6334;
+
+    [Range(1, 65535)]
+    public int HttpPort { get; set; } = 6333;
 
     [Required]
     [MinLength(1)]

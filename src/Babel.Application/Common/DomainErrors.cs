@@ -93,4 +93,31 @@ public static class DomainErrors
             "DocumentChunk.EmptyContent",
             "El contenido del fragmento no puede estar vacío.");
     }
+
+    public static class Vectorization
+    {
+        public static readonly Error ChunkingFailed = new(
+            "Vectorization.ChunkingFailed",
+            "Error al dividir el documento en fragmentos.");
+
+        public static readonly Error EmbeddingFailed = new(
+            "Vectorization.EmbeddingFailed",
+            "Error al generar embeddings vectoriales.");
+
+        public static readonly Error QdrantOperationFailed = new(
+            "Vectorization.QdrantOperationFailed",
+            "Error en operación con la base de datos vectorial.");
+
+        public static readonly Error DocumentNotReady = new(
+            "Vectorization.DocumentNotReady",
+            "El documento no está listo para vectorización.");
+
+        public static readonly Error EmptyContent = new(
+            "Vectorization.EmptyContent",
+            "El documento no tiene contenido para vectorizar.");
+
+        public static readonly Error ProviderNotConfigured = new(
+            "Vectorization.ProviderNotConfigured",
+            "El proveedor de embeddings no está configurado correctamente.");
+    }
 }

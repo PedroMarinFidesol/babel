@@ -2,12 +2,17 @@ using Babel.Application.Interfaces;
 using Babel.Infrastructure.Configuration;
 using Babel.Infrastructure.Data;
 using Babel.Infrastructure.Jobs;
+using Babel.Infrastructure.Queues;
 using Babel.Infrastructure.Repositories;
 using Babel.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.SemanticKernel;
 using Qdrant.Client;
+
+#pragma warning disable SKEXP0070 // Ollama connector is experimental
 
 namespace Babel.Infrastructure;
 
@@ -35,11 +40,11 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<BabelDbContext>());
 
-        // Qdrant Client
-        var qdrantEndpoint = configuration["Qdrant:Endpoint"] ?? "http://localhost:6333";
-        Uri qdrantUri = new Uri(qdrantEndpoint);
+        // Qdrant Client - usa gRPC (puerto 6334 por defecto)
+        var qdrantHost = configuration["Qdrant:Host"] ?? "localhost";
+        var qdrantGrpcPort = configuration.GetValue("Qdrant:GrpcPort", 6334);
         services.AddSingleton<QdrantClient>(sp =>
-            new QdrantClient(qdrantUri));
+            new QdrantClient(qdrantHost, qdrantGrpcPort));
 
         // Qdrant Initialization Service (crea la colección al inicio)
         services.AddHostedService<QdrantInitializationService>();
@@ -70,7 +75,22 @@ public static class DependencyInjection
         services.AddScoped<ITextExtractionService, TextExtractionService>();
 
         // Document Processing Job (registrado siempre, pero solo funciona si Hangfire está habilitado)
+        // Asegurar que exista una implementación de IDocumentProcessingQueue.
+        // Si existe una implementación específica (p. ej. HangfireDocumentProcessingQueue) se debe registrar
+        // en función de la configuración. Aquí registramos una implementación en memoria por defecto
+        // para evitar fallos de validación del contenedor DI cuando la cola no esté configurada.
+        services.AddScoped<IDocumentProcessingQueue, InMemoryDocumentProcessingQueue>();
+
         services.AddScoped<DocumentProcessingJob>();
+
+        // Vectorization Services
+        services.AddScoped<IChunkingService, ChunkingService>();
+        services.AddScoped<IEmbeddingService, SemanticKernelEmbeddingService>();
+        services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
+        services.AddScoped<DocumentVectorizationJob>();
+
+        // Semantic Kernel Embedding Generator
+        AddSemanticKernelEmbeddingGenerator(services, configuration);
 
         // Configuration Validator
         services.AddSingleton<ConfigurationValidator>();
@@ -89,5 +109,51 @@ public static class DependencyInjection
     {
         var validator = serviceProvider.GetRequiredService<ConfigurationValidator>();
         return validator.Validate();
+    }
+
+    /// <summary>
+    /// Configura el generador de embeddings según el proveedor seleccionado.
+    /// </summary>
+    private static void AddSemanticKernelEmbeddingGenerator(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var skOptions = configuration.GetSection(SemanticKernelOptions.SectionName).Get<SemanticKernelOptions>();
+
+        if (skOptions is null)
+        {
+            return;
+        }
+
+        var kernelBuilder = Kernel.CreateBuilder();
+
+        switch (skOptions.DefaultProvider?.ToLowerInvariant())
+        {
+            case "ollama":
+                if (!string.IsNullOrEmpty(skOptions.Ollama?.Endpoint))
+                {
+                    kernelBuilder.AddOllamaTextEmbeddingGeneration(
+                        modelId: skOptions.Ollama.EmbeddingModel,
+                        endpoint: new Uri(skOptions.Ollama.Endpoint));
+                }
+                break;
+
+            case "openai":
+                if (!string.IsNullOrEmpty(skOptions.OpenAI?.ApiKey))
+                {
+                    kernelBuilder.AddOpenAITextEmbeddingGeneration(
+                        modelId: skOptions.OpenAI.EmbeddingModel,
+                        apiKey: skOptions.OpenAI.ApiKey);
+                }
+                break;
+        }
+
+        var kernel = kernelBuilder.Build();
+
+        // Registrar el Kernel para inyección y reutilización
+        // Evitamos resolver aquí un IEmbeddingGenerator concreto porque los conectores
+        // pueden no registrar exactamente ese contrato en el ServiceProvider interno del Kernel.
+
+        services.AddSingleton(kernel);
     }
 }

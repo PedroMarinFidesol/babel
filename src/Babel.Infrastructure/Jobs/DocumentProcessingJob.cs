@@ -10,13 +10,16 @@ namespace Babel.Infrastructure.Jobs;
 public class DocumentProcessingJob
 {
     private readonly ITextExtractionService _textExtractionService;
+    private readonly IDocumentProcessingQueue _processingQueue;
     private readonly ILogger<DocumentProcessingJob> _logger;
 
     public DocumentProcessingJob(
         ITextExtractionService textExtractionService,
+        IDocumentProcessingQueue processingQueue,
         ILogger<DocumentProcessingJob> logger)
     {
         _textExtractionService = textExtractionService;
+        _processingQueue = processingQueue;
         _logger = logger;
     }
 
@@ -37,6 +40,12 @@ public class DocumentProcessingJob
             _logger.LogInformation(
                 "Document {DocumentId} processed successfully, extracted {Length} characters",
                 documentId, result.Value?.Length ?? 0);
+
+            // Encolar vectorización después de extracción exitosa
+            var vectorizationJobId = _processingQueue.EnqueueVectorization(documentId);
+            _logger.LogInformation(
+                "Document {DocumentId} enqueued for vectorization. JobId: {JobId}",
+                documentId, vectorizationJobId);
         }
         else
         {

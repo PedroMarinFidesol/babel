@@ -18,4 +18,11 @@ public interface IDocumentProcessingQueue
     /// <param name="documentId">ID del documento a procesar</param>
     /// <returns>ID del trabajo encolado</returns>
     string EnqueueOcrProcessing(Guid documentId);
+
+    /// <summary>
+    /// Encola un documento para vectorización.
+    /// </summary>
+    /// <param name="documentId">ID del documento a vectorizar</param>
+    /// <returns>ID del trabajo encolado</returns>
+    string EnqueueVectorization(Guid documentId);
 }

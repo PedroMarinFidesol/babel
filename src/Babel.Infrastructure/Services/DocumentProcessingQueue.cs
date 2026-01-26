@@ -29,4 +29,10 @@ public class DocumentProcessingQueue : IDocumentProcessingQueue
         return _backgroundJobClient.Enqueue<DocumentProcessingJob>(
             job => job.ProcessAsync(documentId));
     }
+
+    public string EnqueueVectorization(Guid documentId)
+    {
+        return _backgroundJobClient.Enqueue<DocumentVectorizationJob>(
+            job => job.ProcessAsync(documentId));
+    }
 }

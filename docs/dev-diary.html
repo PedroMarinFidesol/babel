@@ -176,11 +176,11 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">9</div>
+                <div class="stat-value" id="total-sessions">10</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">14.5h</div>
+                <div class="stat-value" id="total-hours">15.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
@@ -200,6 +200,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260126_162831',
+                date: '2026-01-26',
+                time: '16:28',
+                duration: '1.0h',
+                title: 'Bugfix: Conexión Qdrant gRPC y Bucle Infinito ChunkingService',
+                summary: 'Corrección de dos bugs críticos: (1) QdrantClient usaba puerto REST en lugar de gRPC, causando errores de conexión. Se actualizó la configuración para usar Host/GrpcPort. (2) Bucle infinito en ChunkingService cuando el overlap hacía que nextPosition <= currentPosition. Se mejoró el logging de InMemoryDocumentProcessingQueue para facilitar diagnóstico. 16/16 tests de ChunkingService pasan.',
+                tags: ['bugfix'],
+                docPath: 'sessions/20260126_162831_bugfix_qdrant_chunking.md'
+            },
             {
                 id: '20260126_090724',
                 date: '2026-01-26',

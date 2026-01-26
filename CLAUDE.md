@@ -45,6 +45,42 @@ Ejemplo: `20260124_112606_proyecto_base_y_correccion_qdrant.md`
 - Crear un historial de evolución del proyecto
 - Servir como referencia para troubleshooting
 
+## Reglas de Seguridad - IMPORTANTE
+
+**NUNCA incluir credenciales, passwords, API keys o secrets en archivos que se commitean a Git.**
+
+### Archivos permitidos para secrets:
+- `appsettings.local.json` (está en .gitignore)
+- Variables de entorno
+- User secrets de .NET (`dotnet user-secrets`)
+
+### Archivos PROHIBIDOS para secrets:
+- `appsettings.json` - NUNCA poner passwords, API keys o connection strings con credenciales
+- `appsettings.Development.json`
+- Cualquier archivo `.cs`, `.razor`, etc.
+
+### Qué debe ir en cada archivo:
+
+**appsettings.json** (se commitea):
+```json
+"ConnectionStrings": {
+  "DefaultConnection": ""  // Vacío, sin credenciales
+},
+"OpenAI": {
+  "ApiKey": ""  // Vacío
+}
+```
+
+**appsettings.local.json** (NO se commitea):
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Database=BabelDb;User Id=sa;Password=REAL_PASSWORD;"
+},
+"OpenAI": {
+  "ApiKey": "sk-proj-REAL_API_KEY"
+}
+```
+
 ## Descripción General del Proyecto
 
 **Babel** es un sistema de gestión documental con capacidades de IA y OCR. Está construido como un monolito modular usando .NET Core y principios de Clean Architecture.
@@ -473,6 +509,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260126_162831_bugfix_qdrant_chunking.md** - Bugfix: conexión Qdrant gRPC (puerto 6334 vs 6333) y bucle infinito en ChunkingService
 - **20260126_090724_fase5_webui_fase6_hangfire.md** - Fase 5 WebUI integrada con MediatR, Fase 6 Hangfire configurado con dashboard y jobs de procesamiento (total: 160 tests)
 - **20260125_202951_fase3_crud_proyectos.md** - Fase 3: CRUD completo de proyectos, ProjectsController con 6 endpoints REST, SearchProjectsQuery, 30 tests de handlers (total: 88)
 - **20260125_193629_fase2_cqrs_mediatr.md** - Fase 2: Patron Result, ICommand/IQuery, Behaviors (Logging, Validation, ExceptionHandling), Repositorios con Unit of Work, 31 tests

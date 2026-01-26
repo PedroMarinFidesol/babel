@@ -6,23 +6,26 @@ namespace Babel.Application.Documents.Commands;
 
 /// <summary>
 /// Handler para DeleteDocumentCommand.
-/// Elimina el archivo del storage y el registro de la base de datos.
+/// Elimina el archivo del storage, los vectores de Qdrant y el registro de la base de datos.
 /// </summary>
 public sealed class DeleteDocumentCommandHandler : ICommandHandler<DeleteDocumentCommand>
 {
     private readonly IDocumentRepository _documentRepository;
     private readonly IStorageService _storageService;
+    private readonly IVectorStoreService _vectorStoreService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<DeleteDocumentCommandHandler> _logger;
 
     public DeleteDocumentCommandHandler(
         IDocumentRepository documentRepository,
         IStorageService storageService,
+        IVectorStoreService vectorStoreService,
         IUnitOfWork unitOfWork,
         ILogger<DeleteDocumentCommandHandler> logger)
     {
         _documentRepository = documentRepository;
         _storageService = storageService;
+        _vectorStoreService = vectorStoreService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -41,11 +44,30 @@ public sealed class DeleteDocumentCommandHandler : ICommandHandler<DeleteDocumen
 
         var filePath = document.FilePath;
 
-        // 2. Eliminar de base de datos (cascade eliminará los chunks)
+        // 2. Eliminar de Qdrant si estaba vectorizado
+        if (document.IsVectorized)
+        {
+            var qdrantResult = await _vectorStoreService.DeleteByDocumentIdAsync(document.Id, cancellationToken);
+
+            if (qdrantResult.IsFailure)
+            {
+                _logger.LogWarning(
+                    "Error eliminando vectores de Qdrant para documento {DocumentId}: {Error}. Continuando con eliminación.",
+                    document.Id, qdrantResult.Error.Description);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Vectores eliminados de Qdrant para documento {DocumentId}",
+                    document.Id);
+            }
+        }
+
+        // 3. Eliminar de base de datos (cascade eliminará los chunks)
         _documentRepository.Remove(document);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 3. Eliminar archivo del storage
+        // 4. Eliminar archivo del storage
         try
         {
             await _storageService.DeleteFileAsync(filePath, cancellationToken);
