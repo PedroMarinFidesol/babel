@@ -30,8 +30,9 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Hangfire Configuration (solo si hay conexión disponible)
-var hangfireConnection = builder.Configuration.GetConnectionString("HangfireConnection")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var hangfireConnection = builder.Configuration.GetConnectionString("HangfireConnection");
+if (string.IsNullOrWhiteSpace(hangfireConnection))
+    hangfireConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 
 var hangfireOptions = builder.Configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>() ?? new HangfireOptions();
 var hangfireEnabled = !string.IsNullOrWhiteSpace(hangfireConnection);
