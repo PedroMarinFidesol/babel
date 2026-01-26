@@ -69,13 +69,7 @@ public static class DependencyInjection
         // Text Extraction Service
         services.AddScoped<ITextExtractionService, TextExtractionService>();
 
-        // Background Job Service
-        services.AddScoped<IBackgroundJobService, HangfireBackgroundJobService>();
-
-        // Document Processing Queue
-        services.AddScoped<IDocumentProcessingQueue, DocumentProcessingQueue>();
-
-        // Document Processing Job
+        // Document Processing Job (registrado siempre, pero solo funciona si Hangfire está habilitado)
         services.AddScoped<DocumentProcessingJob>();
 
         // Configuration Validator
