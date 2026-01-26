@@ -1,4 +1,7 @@
+@using Babel.Application.Documents.Commands
+@using Babel.Application.DTOs
 @inject ISnackbar Snackbar
+@inject IMediator Mediator
 
 <MudPaper Elevation="0"
           Class="@GetDropZoneClass()"
@@ -88,7 +91,7 @@
     public Guid ProjectId { get; set; }
 
     [Parameter]
-    public EventCallback<List<IBrowserFile>> OnFilesUploaded { get; set; }
+    public EventCallback<List<DocumentDto>> OnFilesUploaded { get; set; }
 
     [Parameter]
     public int MaxFileSizeMB { get; set; } = 50;
@@ -101,6 +104,8 @@
     private bool _isDragOver;
     private bool _isUploading;
     private string _uploadProgress = "";
+    private int _successCount;
+    private int _errorCount;
 
     private void HandleDragEnter()
     {
@@ -142,36 +147,64 @@
         if (_selectedFiles.Count == 0) return;
 
         _isUploading = true;
+        _successCount = 0;
+        _errorCount = 0;
         _uploadProgress = $"0 / {_selectedFiles.Count} archivos";
 
-        try
-        {
-            var uploadedFiles = new List<IBrowserFile>();
+        var uploadedDocuments = new List<DocumentDto>();
+        var maxSize = MaxFileSizeMB * 1024 * 1024;
 
-            for (int i = 0; i < _selectedFiles.Count; i++)
+        for (int i = 0; i < _selectedFiles.Count; i++)
+        {
+            var file = _selectedFiles[i];
+            _uploadProgress = $"Subiendo {i + 1} / {_selectedFiles.Count}: {file.Name}";
+            StateHasChanged();
+
+            try
             {
-                _uploadProgress = $"{i + 1} / {_selectedFiles.Count} archivos";
-                StateHasChanged();
+                await using var stream = file.OpenReadStream(maxSize);
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
 
-                // Simulate upload delay (replace with actual upload logic)
-                await Task.Delay(500);
+                var command = new UploadDocumentCommand(ProjectId, file.Name, memoryStream);
+                var result = await Mediator.Send(command);
 
-                uploadedFiles.Add(_selectedFiles[i]);
+                if (result.IsSuccess)
+                {
+                    uploadedDocuments.Add(result.Value!);
+                    _successCount++;
+                }
+                else
+                {
+                    _errorCount++;
+                    Snackbar.Add($"Error en {file.Name}: {result.Error.Description}", Severity.Warning);
+                }
             }
+            catch (Exception ex)
+            {
+                _errorCount++;
+                Snackbar.Add($"Error al subir {file.Name}: {ex.Message}", Severity.Error);
+            }
+        }
 
-            await OnFilesUploaded.InvokeAsync(uploadedFiles);
-            Snackbar.Add($"{uploadedFiles.Count} archivo(s) subido(s) correctamente", Severity.Success);
+        if (uploadedDocuments.Count > 0)
+        {
+            await OnFilesUploaded.InvokeAsync(uploadedDocuments);
+        }
 
-            _selectedFiles.Clear();
-        }
-        catch (Exception ex)
+        if (_successCount > 0)
         {
-            Snackbar.Add($"Error al subir archivos: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{_successCount} archivo(s) subido(s) correctamente", Severity.Success);
         }
-        finally
+
+        if (_errorCount > 0 && _successCount == 0)
         {
-            _isUploading = false;
+            Snackbar.Add($"No se pudo subir ningun archivo", Severity.Error);
         }
+
+        _selectedFiles.Clear();
+        _isUploading = false;
     }
 
     private void ClearSelection()

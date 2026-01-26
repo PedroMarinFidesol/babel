@@ -1,6 +1,8 @@
 @page "/project/{ProjectId:guid}"
 @using Babel.Application.Projects.Queries
 @using Babel.Application.Projects.Commands
+@using Babel.Application.Documents.Queries
+@using Babel.Application.Documents.Commands
 @inject IMediator Mediator
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -102,6 +104,7 @@ else if (_project is not null)
                             <MudTh>Nombre</MudTh>
                             <MudTh>Tamaño</MudTh>
                             <MudTh>Estado</MudTh>
+                            <MudTh Style="width: 50px;"></MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="Nombre">
@@ -115,6 +118,13 @@ else if (_project is not null)
                                 <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
                                     @GetStatusText(context.Status)
                                 </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteDocument(context))"
+                                               Disabled="@(_deletingDocumentId == context.Id)" />
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -209,9 +219,46 @@ else if (_project is not null)
     private bool _showDeleteDialog;
     private bool _isDeleting;
 
+    // Document delete state
+    private Guid? _deletingDocumentId;
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadProject();
+        await LoadProjectAndDocuments();
+    }
+
+    private async Task LoadProjectAndDocuments()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var projectResult = await Mediator.Send(new GetProjectByIdQuery(ProjectId));
+
+            if (projectResult.IsSuccess)
+            {
+                _project = projectResult.Value!;
+
+                var documentsResult = await Mediator.Send(new GetDocumentsByProjectQuery(ProjectId));
+                if (documentsResult.IsSuccess)
+                {
+                    _documents = documentsResult.Value!.ToList();
+                }
+            }
+            else
+            {
+                _errorMessage = projectResult.Error.Description;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error al cargar el proyecto: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private async Task LoadProject()
@@ -239,6 +286,22 @@ else if (_project is not null)
         finally
         {
             _isLoading = false;
+        }
+    }
+
+    private async Task LoadDocuments()
+    {
+        try
+        {
+            var result = await Mediator.Send(new GetDocumentsByProjectQuery(ProjectId));
+            if (result.IsSuccess)
+            {
+                _documents = result.Value!.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar documentos: {ex.Message}", Severity.Error);
         }
     }
 
@@ -332,26 +395,53 @@ else if (_project is not null)
         Snackbar.Add($"Documento seleccionado: {documentId}", Severity.Info);
     }
 
-    private void HandleFilesUploaded(List<IBrowserFile> files)
+    private async Task HandleFilesUploaded(List<DocumentDto> documents)
     {
-        // TODO: Implement actual file upload via MediatR command
-        foreach (var file in files)
+        foreach (var doc in documents)
         {
-            _documents.Add(new DocumentDto
-            {
-                Id = Guid.NewGuid(),
-                ProjectId = ProjectId,
-                FileName = file.Name,
-                FileExtension = Path.GetExtension(file.Name),
-                FileSizeBytes = file.Size,
-                MimeType = file.ContentType,
-                Status = Babel.Domain.Enums.DocumentStatus.Pending,
-                IsVectorized = false,
-                CreatedAt = DateTime.UtcNow
-            });
+            _documents.Insert(0, doc);
         }
 
-        Snackbar.Add($"{files.Count} archivo(s) añadido(s) (pendiente de implementación)", Severity.Info);
+        if (_project is not null)
+        {
+            _project.TotalDocuments += documents.Count;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteDocument(DocumentDto document)
+    {
+        _deletingDocumentId = document.Id;
+
+        try
+        {
+            var result = await Mediator.Send(new DeleteDocumentCommand(document.Id));
+
+            if (result.IsSuccess)
+            {
+                _documents.Remove(document);
+
+                if (_project is not null)
+                {
+                    _project.TotalDocuments = Math.Max(0, _project.TotalDocuments - 1);
+                }
+
+                Snackbar.Add($"Documento '{document.FileName}' eliminado", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add(result.Error.Description, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _deletingDocumentId = null;
+        }
     }
 
     private static string GetFileIcon(string extension) => extension.ToLower() switch

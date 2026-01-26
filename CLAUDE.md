@@ -473,6 +473,8 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260126_090724_fase5_webui_fase6_hangfire.md** - Fase 5 WebUI integrada con MediatR, Fase 6 Hangfire configurado con dashboard y jobs de procesamiento (total: 160 tests)
+- **20260125_202951_fase3_crud_proyectos.md** - Fase 3: CRUD completo de proyectos, ProjectsController con 6 endpoints REST, SearchProjectsQuery, 30 tests de handlers (total: 88)
 - **20260125_193629_fase2_cqrs_mediatr.md** - Fase 2: Patron Result, ICommand/IQuery, Behaviors (Logging, Validation, ExceptionHandling), Repositorios con Unit of Work, 31 tests
 - **20260125_164840_fase1_infraestructura.md** - Fase 1: Docker Compose, migraciones EF, QdrantInitializationService, ConfigurationValidator, PLAN_DESARROLLO.md
 - **20260125_151330_healthcheck_lazy_load.md** - Health checks bajo demanda y correccion de carga de appsettings.local.json en WebUI
@@ -491,37 +493,51 @@ Cada documento de sesión contiene:
 
 ## Estado del Roadmap
 
-**Fase 1 Completada:** ✅ Estructura base del proyecto
+**Fase 1 Completada:** ✅ Infraestructura y Base de Datos
 - Clean Architecture con 4 capas implementada
-- Entity Framework Core configurado con SQL Server
+- Docker Compose (SQL Server, Qdrant, Azure OCR)
 - Health checks para SQL Server, Qdrant y Azure OCR
-- Migración inicial de base de datos creada
-- Swagger UI configurado
+- Migración EF con DocumentChunk y campos completos
+- Servicio de inicialización de Qdrant
+- Clases de configuración (Options) y validador
 
-**Fase 2 Completada:** ✅ Entidades de Dominio
-- Entidad Project mejorada con Description
-- Entidad Document con campos completos (FileSizeBytes, ContentHash, MimeType, etc.)
-- Nueva entidad DocumentChunk para chunking RAG
-- Proyecto de tests con 27 tests unitarios (xUnit + FluentAssertions)
-
-**Fase 2b Completada:** ✅ CQRS con MediatR
+**Fase 2 Completada:** ✅ CQRS con MediatR
 - Patron Result y Error para manejo funcional de errores
 - Interfaces ICommand/IQuery con handlers
 - Behaviors: LoggingBehavior, ValidationBehavior, ExceptionHandlingBehavior
 - Repositorios con Unit of Work (IRepository, IUnitOfWork)
-- 31 tests unitarios adicionales (total: 58 tests)
+- 31 tests unitarios de behaviors y common
 
-**Fase 3 Completada:** ✅ Layout Inicial WebUI
-- Proyecto Babel.WebUI con Blazor Server + MudBlazor 8.0
-- Layout con AppBar, Drawer y tema claro/oscuro
-- ServiceStatusIndicator para health checks
-- ProjectCard, FileUpload, ChatWindow, ChatMessage
-- DTOs: ProjectDto, DocumentDto, ChatMessageDto
-- MockDataService con 3 proyectos de ejemplo
+**Fase 3 Completada:** ✅ Gestión de Proyectos (CRUD)
+- Commands: CreateProject, UpdateProject, DeleteProject
+- Queries: GetProjects, GetProjectById, SearchProjects
+- ProjectsController con endpoints REST completos
+- WebUI conectada a datos reales via MediatR (sin MockDataService)
+- 30 tests unitarios de handlers
 
-**Próxima Fase:** Gestión de Proyectos y Documentos
-- Crear migración EF para los nuevos campos
-- Implementar Commands/Queries con MediatR
-- Conectar WebUI con servicios reales (sin mock)
-- FileStorageService para almacenamiento de archivos
-- Servicio de chunking para dividir documentos
+**Fase 4 Completada:** ✅ Almacenamiento de Archivos (NAS)
+- IStorageService interface con LocalFileStorageService
+- Seguridad: sanitización de nombres, prevención path traversal
+- Hash SHA256 para deduplicación de archivos
+- 15 tests de integración con archivos temporales
+
+**Fase 5 Completada:** ✅ Subida de Documentos
+- Commands: UploadDocument, DeleteDocument
+- Queries: GetDocumentsByProject, GetDocumentById, GetDocumentContent
+- DocumentsController con endpoints REST
+- IFileTypeDetector para clasificación de archivos
+- FileUpload.razor conectado con MediatR (subida real)
+- Detail.razor con carga y eliminación de documentos
+- 33 tests unitarios de handlers de documentos
+
+**Fase 6 En Progreso:** ⏳ Hangfire
+- Paquetes Hangfire.Core, Hangfire.SqlServer, Hangfire.AspNetCore
+- Dashboard en /hangfire
+- DocumentProcessingJob con reintentos automáticos
+- TextExtractionService para archivos de texto
+- Jobs encolados automáticamente después de upload
+- Pendiente: Extracción de PDF y Office, OCR
+
+**Total Tests:** 160 (27 domain + 77 application + 56 infrastructure)
+- Configurar límites y validaciones de archivos
+- Preparar para integración con upload de documentos

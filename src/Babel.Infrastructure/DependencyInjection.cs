@@ -1,6 +1,7 @@
 using Babel.Application.Interfaces;
 using Babel.Infrastructure.Configuration;
 using Babel.Infrastructure.Data;
+using Babel.Infrastructure.Jobs;
 using Babel.Infrastructure.Repositories;
 using Babel.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.Configure<SemanticKernelOptions>(configuration.GetSection(SemanticKernelOptions.SectionName));
         services.Configure<AzureOcrOptions>(configuration.GetSection(AzureOcrOptions.SectionName));
         services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));
+        services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.SectionName));
 
         // SQL Server DbContext
         services.AddDbContext<BabelDbContext>(options =>
@@ -53,10 +55,28 @@ public static class DependencyInjection
         // Health Check Service
         services.AddScoped<IHealthCheckService, HealthCheckService>();
 
+        // Storage Service
+        services.AddScoped<IStorageService, LocalFileStorageService>();
+
+        // File Type Detector
+        services.AddSingleton<IFileTypeDetector, FileTypeDetectorService>();
+
         // Repositories
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Text Extraction Service
+        services.AddScoped<ITextExtractionService, TextExtractionService>();
+
+        // Background Job Service
+        services.AddScoped<IBackgroundJobService, HangfireBackgroundJobService>();
+
+        // Document Processing Queue
+        services.AddScoped<IDocumentProcessingQueue, DocumentProcessingQueue>();
+
+        // Document Processing Job
+        services.AddScoped<DocumentProcessingJob>();
 
         // Configuration Validator
         services.AddSingleton<ConfigurationValidator>();

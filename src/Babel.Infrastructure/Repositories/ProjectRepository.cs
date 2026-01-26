@@ -54,6 +54,7 @@ public sealed class ProjectRepository : RepositoryBase<Project>, IProjectReposit
         CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .Include(p => p.Documents)
             .AsNoTracking()
             .Where(p => EF.Functions.Like(p.Name, $"%{searchTerm}%"))
             .OrderByDescending(p => p.UpdatedAt)

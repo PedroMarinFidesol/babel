@@ -9,5 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Babel.Application.Tests/Babel.Application.Tests.csproj" />
     <Project Path="tests/Babel.Domain.Tests/Babel.Domain.Tests.csproj" />
+    <Project Path="tests/Babel.Infrastructure.Tests/Babel.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

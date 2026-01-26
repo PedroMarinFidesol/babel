@@ -176,15 +176,15 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">8</div>
+                <div class="stat-value" id="total-sessions">9</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">12.5h</div>
+                <div class="stat-value" id="total-hours">14.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="last-session">2026-01-25</div>
+                <div class="stat-value" id="last-session">2026-01-26</div>
                 <div class="stat-label">Última Sesión</div>
             </div>
         </div>
@@ -200,6 +200,26 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260126_090724',
+                date: '2026-01-26',
+                time: '09:07',
+                duration: '2.0h',
+                title: 'Fase 5: WebUI Integration y Fase 6: Hangfire',
+                summary: 'Completada la integracion WebUI de Fase 5: FileUpload.razor usa MediatR directamente para subir archivos, Detail.razor carga documentos de BD y permite eliminarlos. Avance en Fase 6: Hangfire configurado con dashboard en /hangfire, DocumentProcessingJob con reintentos automaticos, TextExtractionService para archivos de texto. Jobs se encolan automaticamente despues de upload. Total: 160 tests.',
+                tags: ['feature', 'setup'],
+                docPath: 'sessions/20260126_090724_fase5_webui_fase6_hangfire.md'
+            },
+            {
+                id: '20260125_202951',
+                date: '2026-01-25',
+                time: '20:29',
+                duration: '1.5h',
+                title: 'Fase 3: CRUD Completo de Proyectos',
+                summary: 'Completada la Fase 3 con CRUD completo de proyectos. Se implementaron SearchProjectsQuery y handler, ProjectsController con 6 endpoints REST (GET, POST, PUT, DELETE, search), DTOs de request, y 30 tests unitarios para todos los handlers. Total: 88 tests. WebUI conectada a datos reales via MediatR.',
+                tags: ['feature', 'test'],
+                docPath: 'sessions/20260125_202951_fase3_crud_proyectos.md'
+            },
             {
                 id: '20260125_193629',
                 date: '2026-01-25',

@@ -15,19 +15,34 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 - [x] Health checks (SQL Server, Qdrant, Azure OCR)
 - [x] Layout WebUI con Blazor Server + MudBlazor 8.0
 - [x] Componentes UI básicos (ProjectCard, ChatWindow, FileUpload)
-- [x] 27 tests unitarios de dominio
+- [x] 160 tests unitarios (27 domain + 77 application + 56 infrastructure)
 - [x] **FASE 1:** Docker Compose (SQL Server, Qdrant, Azure OCR)
 - [x] **FASE 1:** Migración EF con DocumentChunk y campos completos
 - [x] **FASE 1:** Servicio de inicialización de Qdrant
 - [x] **FASE 1:** Clases de configuración (Options) y validador
 - [x] **FASE 1:** appsettings.json con todas las secciones
+- [x] **FASE 2:** MediatR con CQRS (Commands, Queries, Handlers)
+- [x] **FASE 2:** Pipeline behaviors (Validation, Logging, ExceptionHandling)
+- [x] **FASE 2:** Patrón Result<T> y Error para manejo funcional
+- [x] **FASE 2:** Repositorios base con Unit of Work
+- [x] **FASE 3:** CRUD completo de Proyectos (Commands + Queries + API + UI)
+- [x] **FASE 3:** ProjectsController con endpoints REST
+- [x] **FASE 3:** WebUI conectada a datos reales via MediatR
+- [x] **FASE 4:** IStorageService y LocalFileStorageService
+- [x] **FASE 4:** Configuración FileStorage con validaciones
+- [x] **FASE 5:** Subida de documentos (UploadDocumentCommand + API)
+- [x] **FASE 5:** DocumentsController con endpoints REST
+- [x] **FASE 5:** FileUpload.razor conectado a MediatR
+- [x] **FASE 5:** Listado y eliminación de documentos en WebUI
+
+### En Progreso
+- [x] **FASE 6:** Hangfire configurado (dashboard, workers, jobs básicos)
+- [ ] **FASE 6:** Extracción de PDF y Office (pendiente bibliotecas)
 
 ### Pendiente
-- [ ] MediatR para CQRS
-- [ ] Repositorios
-- [ ] FileStorageService
 - [ ] Servicios de IA (Semantic Kernel)
-- [ ] Jobs asíncronos (Hangfire)
+- [ ] OCR con Azure Computer Vision
+- [ ] Vectorización con Qdrant
 
 ---
 
@@ -71,194 +86,195 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 
 ---
 
-## FASE 2: Patrón CQRS con MediatR
+## FASE 2: Patrón CQRS con MediatR ✅ COMPLETADA
 **Objetivo:** Establecer la arquitectura base para Commands y Queries
 
 ### 2.1 Configuración de MediatR
-- [ ] Instalar paquetes MediatR en Application e Infrastructure
-- [ ] Configurar pipeline behaviors:
+- [x] Instalar paquetes MediatR en Application e Infrastructure
+- [x] Configurar pipeline behaviors:
   - ValidationBehavior (FluentValidation)
   - LoggingBehavior
   - ExceptionHandlingBehavior
-- [ ] Crear interfaces base: ICommand<TResult>, IQuery<TResult>
+- [x] Crear interfaces base: ICommand<TResult>, IQuery<TResult>
 
 ### 2.2 Patrón Result
-- [ ] Implementar `Result<T>` para manejo de errores sin excepciones
-- [ ] Implementar `Error` record para errores tipados
-- [ ] Crear errores de dominio comunes (NotFound, ValidationError, etc.)
+- [x] Implementar `Result<T>` para manejo de errores sin excepciones
+- [x] Implementar `Error` record para errores tipados
+- [x] Crear errores de dominio comunes (NotFound, ValidationError, etc.)
 
 ### 2.3 Repositorios Base
-- [ ] Crear `IRepository<T>` genérico
-- [ ] Crear `IUnitOfWork` para transacciones
-- [ ] Implementar `EfRepository<T>` base
-- [ ] Crear `IProjectRepository` con métodos específicos
-- [ ] Crear `IDocumentRepository` con métodos específicos
+- [x] Crear `IRepository<T>` genérico
+- [x] Crear `IUnitOfWork` para transacciones
+- [x] Implementar `EfRepository<T>` base
+- [x] Crear `IProjectRepository` con métodos específicos
+- [x] Crear `IDocumentRepository` con métodos específicos
 
 **Entregables:**
-- MediatR configurado con pipeline
-- Patrón Result implementado
-- Repositorios base listos para usar
+- [x] MediatR configurado con pipeline
+- [x] Patrón Result implementado
+- [x] Repositorios base listos para usar
 
 **Tests:**
-- Tests unitarios de Result<T>
-- Tests de pipeline behaviors
+- [x] Tests unitarios de Result<T>
+- [x] Tests de pipeline behaviors
 
 ---
 
-## FASE 3: Gestión de Proyectos (CRUD)
+## FASE 3: Gestión de Proyectos (CRUD) ✅ COMPLETADA
 **Objetivo:** Implementar el primer caso de uso completo end-to-end
 
 ### 3.1 Commands de Proyecto
-- [ ] `CreateProjectCommand` + Handler + Validator
-- [ ] `UpdateProjectCommand` + Handler + Validator
-- [ ] `DeleteProjectCommand` + Handler
+- [x] `CreateProjectCommand` + Handler + Validator
+- [x] `UpdateProjectCommand` + Handler + Validator
+- [x] `DeleteProjectCommand` + Handler
 
 ### 3.2 Queries de Proyecto
-- [ ] `GetProjectsQuery` (listado con paginación)
-- [ ] `GetProjectByIdQuery` (detalle con conteo de documentos)
-- [ ] `SearchProjectsQuery` (búsqueda por nombre)
+- [x] `GetProjectsQuery` (listado con conteo de documentos)
+- [x] `GetProjectByIdQuery` (detalle con conteo de documentos)
+- [x] `SearchProjectsQuery` (búsqueda por nombre)
 
 ### 3.3 API Endpoints
-- [ ] `ProjectsController` con endpoints REST:
-  - `GET /api/projects` (listado paginado)
+- [x] `ProjectsController` con endpoints REST:
+  - `GET /api/projects` (listado)
   - `GET /api/projects/{id}` (detalle)
+  - `GET /api/projects/search?term=x` (búsqueda)
   - `POST /api/projects` (crear)
   - `PUT /api/projects/{id}` (actualizar)
   - `DELETE /api/projects/{id}` (eliminar)
-- [ ] Documentar endpoints en Swagger
+- [x] Documentar endpoints en Swagger
 
 ### 3.4 Integración WebUI
-- [ ] Crear servicio `IProjectService` para WebUI
-- [ ] Conectar `Index.razor` con datos reales
-- [ ] Implementar modal de crear/editar proyecto
-- [ ] Implementar confirmación de borrado
-- [ ] Navegación a detalle de proyecto
+- [x] Conectar `Index.razor` con datos reales via MediatR
+- [x] Implementar modal de crear/editar proyecto
+- [x] Implementar confirmación de borrado
+- [x] Navegación a detalle de proyecto (`Projects/Detail.razor`)
 
 **Entregables:**
-- CRUD completo de proyectos funcionando
-- UI conectada a API real
-- Sin MockDataService para proyectos
+- [x] CRUD completo de proyectos funcionando
+- [x] UI conectada a datos reales
+- [x] Sin MockDataService para proyectos
 
 **Tests:**
-- Tests unitarios de Commands/Queries handlers
-- Tests de integración de repositorio
-- Tests de API endpoints
+- [x] Tests unitarios de Commands/Queries handlers (30 tests nuevos)
+- [ ] Tests de integración de repositorio (pendiente para Fase posterior)
+- [ ] Tests de API endpoints (pendiente para Fase posterior)
 
 ---
 
-## FASE 4: Almacenamiento de Archivos (NAS)
+## FASE 4: Almacenamiento de Archivos (NAS) ✅ COMPLETADA
 **Objetivo:** Implementar el servicio de almacenamiento con abstracción para futuros proveedores
 
 ### 4.1 Abstracción de Storage
-- [ ] Crear `IStorageService` interface:
+- [x] Crear `IStorageService` interface:
   ```csharp
-  Task<string> SaveFileAsync(Stream content, string fileName, string projectId);
+  Task<string> SaveFileAsync(Stream content, string fileName, Guid projectId);
   Task<Stream> GetFileAsync(string filePath);
   Task DeleteFileAsync(string filePath);
   Task<bool> ExistsAsync(string filePath);
+  Task<string> GetFileHashAsync(string filePath);
+  Task<long> GetFileSizeAsync(string filePath);
+  Task DeleteProjectFilesAsync(Guid projectId);
   ```
-- [ ] Crear `StorageOptions` para configuración
+- [x] Usar `FileStorageOptions` existente para configuración
 
 ### 4.2 Implementación Local/NAS
-- [ ] Implementar `LocalFileStorageService`
-- [ ] Estructura de carpetas: `{basePath}/{projectId}/{fileName}`
-- [ ] Manejo de nombres duplicados (añadir sufijo único)
-- [ ] Cálculo de hash SHA256 para deduplicación
-- [ ] Validación de tipos de archivo permitidos
-- [ ] Límite de tamaño configurable
+- [x] Implementar `LocalFileStorageService`
+- [x] Estructura de carpetas: `{basePath}/{projectId}/{fileName}`
+- [x] Manejo de nombres duplicados (añadir sufijo timestamp)
+- [x] Cálculo de hash SHA256 para deduplicación
+- [x] Validación de tipos de archivo permitidos
+- [x] Límite de tamaño configurable
+- [x] Sanitización de nombres de archivo (prevención path traversal)
 
 ### 4.3 Configuración
-- [ ] Sección `FileStorage` en appsettings:
-  ```json
-  {
-    "FileStorage": {
-      "Provider": "Local",
-      "BasePath": "./uploads",
-      "MaxFileSizeBytes": 104857600,
-      "AllowedExtensions": [".pdf", ".docx", ".txt", ".png", ".jpg"]
-    }
-  }
-  ```
+- [x] Sección `FileStorage` en appsettings (ya existía)
+- [x] Registro de `IStorageService` en DI
 
 **Entregables:**
-- Servicio de almacenamiento funcional
-- Archivos se guardan en sistema de archivos
-- Preparado para añadir Azure Blob, S3, etc.
+- [x] Servicio de almacenamiento funcional
+- [x] Archivos se guardan en sistema de archivos
+- [x] Preparado para añadir Azure Blob, S3, etc.
 
 **Tests:**
-- Tests unitarios con mock de filesystem
-- Tests de integración con archivos reales temporales
+- [x] 15 tests de integración con archivos reales temporales
+- [x] Tests de path traversal, duplicados, extensiones, hash, etc.
 
 ---
 
-## FASE 5: Subida de Documentos
+## FASE 5: Subida de Documentos ✅ COMPLETADA
 **Objetivo:** Implementar la carga de documentos a proyectos
 
 ### 5.1 Commands de Documento
-- [ ] `UploadDocumentCommand` + Handler:
+- [x] `UploadDocumentCommand` + Handler:
   - Recibe: ProjectId, Stream, FileName
   - Guarda archivo en storage
   - Crea registro en BD
   - Calcula hash para deduplicación
   - Detecta tipo de archivo
-- [ ] `UploadBatchDocumentsCommand` para carga múltiple
+- [x] `DeleteDocumentCommand` + Handler (elimina BD + storage)
+- [ ] `UploadBatchDocumentsCommand` para carga múltiple (pendiente)
 
 ### 5.2 Queries de Documento
-- [ ] `GetDocumentsByProjectQuery` (listado paginado)
-- [ ] `GetDocumentByIdQuery` (detalle)
-- [ ] `GetDocumentContentQuery` (descarga)
+- [x] `GetDocumentsByProjectQuery` (listado por proyecto)
+- [x] `GetDocumentByIdQuery` (detalle)
+- [x] `GetDocumentContentQuery` (descarga stream)
 
 ### 5.3 API Endpoints
-- [ ] `DocumentsController`:
+- [x] `DocumentsController`:
   - `POST /api/projects/{projectId}/documents` (upload)
-  - `POST /api/projects/{projectId}/documents/batch` (batch upload)
   - `GET /api/projects/{projectId}/documents` (listado)
   - `GET /api/documents/{id}` (detalle)
   - `GET /api/documents/{id}/download` (descarga)
+  - `DELETE /api/documents/{id}` (eliminar)
+- [ ] Batch upload (pendiente)
 
 ### 5.4 Detección de Tipo de Archivo
-- [ ] Implementar `IFileTypeDetector`:
+- [x] Implementar `IFileTypeDetector`:
   - Por extensión: .txt, .md → TextBased
   - Por extensión: .jpg, .png, .tiff → ImageBased
-  - Por extensión: .pdf → Pdf (analizar si tiene texto)
+  - Por extensión: .pdf → Pdf
   - Por extensión: .docx, .xlsx → OfficeDocument
-- [ ] Marcar documentos que requieren OCR
+- [x] Marcar documentos que requieren OCR
 
 ### 5.5 Integración WebUI
-- [ ] Conectar `FileUpload.razor` con API real
-- [ ] Mostrar progreso de carga
-- [ ] Actualizar lista de documentos después de carga
-- [ ] Mostrar estado de procesamiento
+- [x] Conectar `FileUpload.razor` con MediatR (subida real)
+- [x] Mostrar progreso de carga por archivo
+- [x] Actualizar lista de documentos después de carga
+- [x] Eliminar documentos desde la tabla
 
 **Entregables:**
-- Subida de archivos funcionando
-- Archivos almacenados en NAS
-- Metadatos en SQL Server
-- UI muestra documentos del proyecto
+- [x] Subida de archivos funcionando (API)
+- [x] Archivos almacenados en NAS
+- [x] Metadatos en SQL Server
+- [x] UI conectada con funcionalidad completa
 
 **Tests:**
-- Tests de UploadDocumentCommand
-- Tests de detección de tipo de archivo
-- Tests de integración de API upload
+- [x] Tests de UploadDocumentCommand (5 tests)
+- [x] Tests de detección de tipo de archivo (17 tests)
+- [x] Tests de GetDocumentsByProjectQuery (4 tests)
+- [x] Tests de GetDocumentByIdQuery (3 tests)
+- [x] Tests de DeleteDocumentCommand (4 tests)
 
 ---
 
-## FASE 6: Procesamiento Asíncrono con Hangfire
+## FASE 6: Procesamiento Asíncrono con Hangfire ⏳ EN PROGRESO
 **Objetivo:** Configurar jobs en segundo plano para procesamiento de documentos
 
 ### 6.1 Configuración de Hangfire
-- [ ] Instalar paquetes Hangfire
-- [ ] Configurar storage en SQL Server (schema separado)
-- [ ] Configurar dashboard en `/hangfire`
-- [ ] Configurar workers y colas
+- [x] Instalar paquetes Hangfire (Core, SqlServer, AspNetCore)
+- [x] Configurar storage en SQL Server (schema HangFire)
+- [x] Configurar dashboard en `/hangfire`
+- [x] Configurar workers y colas (default, documents)
+- [x] HangfireOptions para configuración
 
 ### 6.2 Job de Extracción de Texto
-- [ ] `TextExtractionJob`:
-  - Para archivos de texto: leer contenido directamente
-  - Para PDF con texto: extraer con biblioteca
-  - Para Office: extraer con biblioteca
-  - Actualizar campo Content en Document
-  - Marcar como Completed o encolar OCR
+- [x] `ITextExtractionService` interface
+- [x] `TextExtractionService` implementation (texto básico)
+- [x] `DocumentProcessingJob` con reintentos automáticos
+- [x] `IDocumentProcessingQueue` para encolar jobs
+- [x] Integración con `UploadDocumentCommand` (encola después de upload)
+- [ ] Extracción de PDF con biblioteca (pendiente)
+- [ ] Extracción de Office con biblioteca (pendiente)
 
 ### 6.3 Job de OCR
 - [ ] `OcrProcessingJob`:
@@ -572,21 +588,22 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 
 ## Estimación de Tareas por Fase
 
-| Fase | Descripción | Complejidad | Tests |
-|------|-------------|-------------|-------|
-| 1 | Infraestructura | Media | Mínimos |
-| 2 | CQRS/MediatR | Media | ~15 |
-| 3 | Proyectos CRUD | Media | ~20 |
-| 4 | Storage NAS | Baja | ~10 |
-| 5 | Upload Docs | Media | ~15 |
-| 6 | Hangfire | Alta | ~10 |
-| 7 | Vectorización | Alta | ~15 |
-| 8 | Borrado | Media | ~10 |
-| 9 | IA/RAG | Alta | ~15 |
-| 10 | Chat UI | Media | ~10 |
-| 11 | Pulido | Variable | ~10 |
+| Fase | Descripción | Complejidad | Tests | Estado |
+|------|-------------|-------------|-------|--------|
+| 1 | Infraestructura | Media | Mínimos | ✅ |
+| 2 | CQRS/MediatR | Media | 31 | ✅ |
+| 3 | Proyectos CRUD | Media | 30 | ✅ |
+| 4 | Storage NAS | Baja | 15 | ✅ |
+| 5 | Upload Docs | Media | 57 | ✅ |
+| 6 | Hangfire | Alta | ~10 | Pendiente |
+| 7 | Vectorización | Alta | ~15 | Pendiente |
+| 8 | Borrado | Media | ~10 | Pendiente |
+| 9 | IA/RAG | Alta | ~15 | Pendiente |
+| 10 | Chat UI | Media | ~10 | Pendiente |
+| 11 | Pulido | Variable | ~10 | Pendiente |
 
-**Total estimado:** ~130+ tests nuevos
+**Tests actuales:** 103 (27 domain + 61 application + 15 infrastructure)
+**Total estimado adicional:** ~80 tests más
 
 ---
 
@@ -631,4 +648,4 @@ Cada fase se considera completa cuando:
 ---
 
 *Documento creado: 2026-01-25*
-*Última actualización: 2026-01-25*
+*Última actualización: 2026-01-25 - Fase 4 completada*

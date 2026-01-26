@@ -69,6 +69,14 @@ public static class DomainErrors
         public static readonly Error NotReadyForVectorization = new(
             "Document.NotReadyForVectorization",
             "El documento no está listo para vectorización.");
+
+        public static readonly Error RequiresOcr = new(
+            "Document.RequiresOcr",
+            "El documento requiere procesamiento OCR.");
+
+        public static readonly Error ExtractionFailed = new(
+            "Document.ExtractionFailed",
+            "Error al extraer texto del documento.");
     }
 
     public static class DocumentChunk

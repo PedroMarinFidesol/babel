@@ -25,4 +25,15 @@ public class FileStorageOptions
         ".json", ".xml", ".png", ".jpg", ".jpeg",
         ".tiff", ".bmp"
     ];
+
+    /// <summary>
+    /// Si es true, calcula el hash SHA256 al guardar para detectar duplicados.
+    /// </summary>
+    public bool EnableDeduplication { get; set; } = true;
+
+    /// <summary>
+    /// Si es true, sobrescribe archivos existentes con el mismo nombre.
+    /// Si es false, añade un sufijo único al nombre.
+    /// </summary>
+    public bool OverwriteExisting { get; set; } = false;
 }
