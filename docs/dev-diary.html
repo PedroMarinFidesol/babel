@@ -176,15 +176,15 @@
     <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">10</div>
+                <div class="stat-value" id="total-sessions">13</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">15.5h</div>
+                <div class="stat-value" id="total-hours">21.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="last-session">2026-01-26</div>
+                <div class="stat-value" id="last-session">2026-01-30</div>
                 <div class="stat-label">Última Sesión</div>
             </div>
         </div>
@@ -200,6 +200,26 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260130_170204',
+                date: '2026-01-30',
+                time: '17:02',
+                duration: '1.0h',
+                title: 'Fase 9: Servicio de Chat RAG',
+                summary: 'Implementación completa del servicio de Chat RAG: (1) VectorSearchResult y SearchAsync en IVectorStoreService con filtro por proyecto. (2) Chat Completion configurado para OpenAI y Ollama en Semantic Kernel. (3) IChatService con ChatAsync y ChatStreamAsync. (4) SemanticKernelChatService con flujo RAG completo: embedding consulta, búsqueda vectorial, construcción contexto, llamada LLM. (5) ChatQuery/Handler/Validator de MediatR. (6) Errores de dominio para Chat. 111 tests pasan.',
+                tags: ['feature'],
+                docPath: 'sessions/20260130_170204_servicio_chat_rag.md'
+            },
+            {
+                id: '20260130_120000',
+                date: '2026-01-30',
+                time: '12:00',
+                duration: '2.5h',
+                title: 'Fix: Pipeline Completo de Vectorización con OpenAI',
+                summary: 'Corrección del pipeline completo de vectorización: (1) Hangfire no estaba configurado en WebUI, se centralizó AddHangfireServices(). (2) SemanticKernelEmbeddingService usaba interfaz incorrecta, se reescribió para usar ITextEmbeddingGenerationService. (3) DbUpdateConcurrencyException al marcar documentos vectorizados, se creó MarkAsVectorizedAsync() con ExecuteUpdateAsync. (4) Configuración de OpenAI en WebUI. Se generó INFORME_VECTORIZACION.md documentando todo el sistema.',
+                tags: ['bugfix', 'documentation'],
+                docPath: 'INFORME_VECTORIZACION.md'
+            },
             {
                 id: '20260126_162831',
                 date: '2026-01-26',

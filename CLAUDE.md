@@ -509,6 +509,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260130_170204_servicio_chat_rag.md** - Fase 9: Servicio Chat RAG con SearchAsync en Qdrant, IChatService, SemanticKernelChatService, ChatQuery MediatR (111 tests)
 - **20260126_162831_bugfix_qdrant_chunking.md** - Bugfix: conexión Qdrant gRPC (puerto 6334 vs 6333) y bucle infinito en ChunkingService
 - **20260126_090724_fase5_webui_fase6_hangfire.md** - Fase 5 WebUI integrada con MediatR, Fase 6 Hangfire configurado con dashboard y jobs de procesamiento (total: 160 tests)
 - **20260125_202951_fase3_crud_proyectos.md** - Fase 3: CRUD completo de proyectos, ProjectsController con 6 endpoints REST, SearchProjectsQuery, 30 tests de handlers (total: 88)
@@ -575,6 +576,14 @@ Cada documento de sesión contiene:
 - Jobs encolados automáticamente después de upload
 - Pendiente: Extracción de PDF y Office, OCR
 
-**Total Tests:** 160 (27 domain + 77 application + 56 infrastructure)
-- Configurar límites y validaciones de archivos
-- Preparar para integración con upload de documentos
+**Fase 9 En Progreso:** ⏳ Chat RAG
+- IVectorStoreService.SearchAsync() con filtro por proyecto
+- VectorSearchResult record para resultados de búsqueda
+- IChatService con ChatAsync y ChatStreamAsync
+- SemanticKernelChatService implementa flujo RAG completo
+- Chat Completion configurado (OpenAI/Ollama)
+- ChatQuery/ChatQueryHandler/ChatQueryValidator de MediatR
+- DomainErrors.Chat con errores específicos
+- Pendiente: Conectar ChatWindow.razor, endpoint REST, tests
+
+**Total Tests:** 111 (27 domain + 84 application)

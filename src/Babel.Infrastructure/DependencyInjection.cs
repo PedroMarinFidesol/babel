@@ -85,6 +85,9 @@ public static class DependencyInjection
         services.AddScoped<IVectorStoreService, QdrantVectorStoreService>();
         services.AddScoped<DocumentVectorizationJob>();
 
+        // Chat RAG Service
+        services.AddScoped<IChatService, SemanticKernelChatService>();
+
         // Semantic Kernel Embedding Generator
         AddSemanticKernelEmbeddingGenerator(services, configuration);
 
@@ -128,9 +131,13 @@ public static class DependencyInjection
             case "ollama":
                 if (!string.IsNullOrEmpty(skOptions.Ollama?.Endpoint))
                 {
+                    var ollamaEndpoint = new Uri(skOptions.Ollama.Endpoint);
                     kernelBuilder.AddOllamaTextEmbeddingGeneration(
                         modelId: skOptions.Ollama.EmbeddingModel,
-                        endpoint: new Uri(skOptions.Ollama.Endpoint));
+                        endpoint: ollamaEndpoint);
+                    kernelBuilder.AddOllamaChatCompletion(
+                        modelId: skOptions.Ollama.ChatModel,
+                        endpoint: ollamaEndpoint);
                 }
                 break;
 
@@ -139,6 +146,9 @@ public static class DependencyInjection
                 {
                     kernelBuilder.AddOpenAITextEmbeddingGeneration(
                         modelId: skOptions.OpenAI.EmbeddingModel,
+                        apiKey: skOptions.OpenAI.ApiKey);
+                    kernelBuilder.AddOpenAIChatCompletion(
+                        modelId: skOptions.OpenAI.ChatModel,
                         apiKey: skOptions.OpenAI.ApiKey);
                 }
                 break;

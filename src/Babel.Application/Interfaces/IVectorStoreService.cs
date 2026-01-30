@@ -16,6 +16,23 @@ public record ChunkPayload(
     string FileName);
 
 /// <summary>
+/// Resultado de una búsqueda vectorial en Qdrant.
+/// </summary>
+/// <param name="PointId">ID del punto en Qdrant</param>
+/// <param name="DocumentId">ID del documento en SQL Server</param>
+/// <param name="ProjectId">ID del proyecto</param>
+/// <param name="ChunkIndex">Índice del chunk dentro del documento</param>
+/// <param name="FileName">Nombre del archivo original</param>
+/// <param name="SimilarityScore">Puntuación de similitud (0-1)</param>
+public record VectorSearchResult(
+    Guid PointId,
+    Guid DocumentId,
+    Guid ProjectId,
+    int ChunkIndex,
+    string FileName,
+    float SimilarityScore);
+
+/// <summary>
 /// Servicio para operaciones CRUD en la base de datos vectorial.
 /// Abstracción sobre Qdrant.
 /// </summary>
@@ -60,5 +77,21 @@ public interface IVectorStoreService
     /// <param name="cancellationToken">Token de cancelación</param>
     Task<Result> DeleteByProjectIdAsync(
         Guid projectId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Busca chunks similares en Qdrant usando búsqueda vectorial.
+    /// </summary>
+    /// <param name="queryVector">Vector de embedding de la consulta</param>
+    /// <param name="projectId">ID del proyecto para filtrar resultados</param>
+    /// <param name="topK">Número máximo de resultados a retornar (default: 5)</param>
+    /// <param name="minScore">Puntuación mínima de similitud (default: 0.7)</param>
+    /// <param name="cancellationToken">Token de cancelación</param>
+    /// <returns>Lista de resultados ordenados por similitud descendente</returns>
+    Task<Result<IReadOnlyList<VectorSearchResult>>> SearchAsync(
+        ReadOnlyMemory<float> queryVector,
+        Guid projectId,
+        int topK = 5,
+        float minScore = 0.7f,
         CancellationToken cancellationToken = default);
 }

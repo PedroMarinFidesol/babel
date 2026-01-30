@@ -181,6 +181,66 @@ public class QdrantVectorStoreService : IVectorStoreService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<Result<IReadOnlyList<VectorSearchResult>>> SearchAsync(
+        ReadOnlyMemory<float> queryVector,
+        Guid projectId,
+        int topK = 5,
+        float minScore = 0.7f,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Filtro por project_id para limitar búsqueda al proyecto especificado
+            var filter = new Filter
+            {
+                Must =
+                {
+                    new Condition
+                    {
+                        Field = new FieldCondition
+                        {
+                            Key = "project_id",
+                            Match = new Match { Keyword = projectId.ToString() }
+                        }
+                    }
+                }
+            };
+
+            var searchResults = await _qdrantClient.SearchAsync(
+                collectionName: _options.CollectionName,
+                vector: queryVector.ToArray(),
+                filter: filter,
+                limit: (ulong)topK,
+                scoreThreshold: minScore,
+                cancellationToken: cancellationToken);
+
+            var results = searchResults
+                .Select(point => new VectorSearchResult(
+                    PointId: Guid.Parse(point.Id.Uuid),
+                    DocumentId: Guid.Parse(point.Payload["document_id"].StringValue),
+                    ProjectId: Guid.Parse(point.Payload["project_id"].StringValue),
+                    ChunkIndex: (int)point.Payload["chunk_index"].IntegerValue,
+                    FileName: point.Payload["file_name"].StringValue,
+                    SimilarityScore: point.Score))
+                .ToList();
+
+            _logger.LogDebug(
+                "Búsqueda vectorial completada. ProjectId: {ProjectId}, Resultados: {Count}",
+                projectId, results.Count);
+
+            return Result.Success<IReadOnlyList<VectorSearchResult>>(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Error en búsqueda vectorial. ProjectId: {ProjectId}",
+                projectId);
+            return Result.Failure<IReadOnlyList<VectorSearchResult>>(
+                new Error("VectorSearch.Failed", $"Error en búsqueda vectorial: {ex.Message}"));
+        }
+    }
+
     /// <summary>
     /// Crea un PointStruct para Qdrant con el embedding y payload.
     /// </summary>

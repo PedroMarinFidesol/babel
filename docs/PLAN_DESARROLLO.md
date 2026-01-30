@@ -47,14 +47,20 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 - [ ] **FASE 6:** Extracción de PDF (biblioteca pendiente)
 - [ ] **FASE 6:** Extracción de Office (biblioteca pendiente)
 - [ ] **FASE 6:** OCR con Azure Computer Vision
+- [ ] **FASE 9:** Conectar ChatWindow.razor con ChatQuery
+- [ ] **FASE 9:** ChatController con endpoints REST
+- [ ] **FASE 10:** UI de chat conectada con streaming
 
-### Pendiente
-- [ ] Flujo completo de vectorización end-to-end
-- [ ] Chat RAG con Semantic Kernel
-- [ ] UI de chat conectada
+### Completado Recientemente
+- [x] **FASE 9:** IChatService con ChatAsync y ChatStreamAsync
+- [x] **FASE 9:** SemanticKernelChatService con flujo RAG completo
+- [x] **FASE 9:** IVectorStoreService.SearchAsync() con filtro por proyecto
+- [x] **FASE 9:** ChatQuery/ChatQueryHandler/ChatQueryValidator de MediatR
+- [x] **FASE 9:** DomainErrors.Chat con errores específicos
+- [x] **FASE 9:** Chat Completion configurado (OpenAI/Ollama)
 
 ### Tests
-- **Total:** 194 tests (27 domain + 84 application + 83 infrastructure)
+- **Total:** 111 tests (27 domain + 84 application)
 
 ---
 
@@ -418,7 +424,7 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 
 ---
 
-## FASE 9: Configuración de Asistentes IA
+## FASE 9: Configuración de Asistentes IA ⏳ EN PROGRESO
 **Objetivo:** Configurar Semantic Kernel para chat RAG
 
 ### 9.1 Configuración de Semantic Kernel
@@ -427,40 +433,50 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
   - Ollama (modelos locales)
   - OpenAI (GPT-4)
   - Google Gemini
-- [ ] Selector de proveedor en runtime
+- [x] Chat Completion configurado (AddOpenAIChatCompletion, AddOllamaChatCompletion)
+- [ ] Selector de proveedor en runtime (UI)
 
 ### 9.2 Servicio de Chat
-- [ ] Crear `IChatService`:
+- [x] Crear `IChatService`:
   ```csharp
-  Task<ChatResponse> ChatAsync(Guid projectId, string message, CancellationToken ct);
+  Task<Result<ChatResponseDto>> ChatAsync(Guid projectId, string message, CancellationToken ct);
   IAsyncEnumerable<string> ChatStreamAsync(Guid projectId, string message, CancellationToken ct);
   ```
+- [x] `SemanticKernelChatService` implementación completa
 
 ### 9.3 Implementación RAG
-- [ ] Búsqueda de contexto relevante:
-  1. Convertir pregunta a embedding
-  2. Buscar en Qdrant (filtrado por projectId)
-  3. Recuperar chunks relevantes (top K)
-  4. Obtener contenido de BD
-- [ ] Construir prompt con contexto
-- [ ] Llamar a LLM
-- [ ] Retornar respuesta + referencias a documentos
+- [x] Búsqueda de contexto relevante:
+  1. Convertir pregunta a embedding (IEmbeddingService)
+  2. Buscar en Qdrant (IVectorStoreService.SearchAsync con filtro projectId)
+  3. Recuperar chunks relevantes (top K con score mínimo)
+  4. Obtener contenido de BD (DocumentChunks)
+- [x] Construir prompt con contexto
+- [x] Llamar a LLM (IChatCompletionService)
+- [x] Retornar respuesta + referencias a documentos (ChatResponseDto)
 
 ### 9.4 Prompt Engineering
-- [ ] Crear template de prompt RAG
-- [ ] Instrucciones para citar fuentes
-- [ ] Manejo de contexto insuficiente
-- [ ] Límite de tokens de contexto
+- [x] Crear template de prompt RAG (SystemPrompt en SemanticKernelChatService)
+- [x] Instrucciones para citar fuentes
+- [x] Manejo de contexto insuficiente ("No encuentro información...")
+- [x] Límite de tokens de contexto (MaxContextTokens = 4000)
+
+### 9.5 MediatR Integration
+- [x] `ChatQuery` record
+- [x] `ChatQueryHandler` delega a IChatService
+- [x] `ChatQueryValidator` con FluentValidation
+- [x] `DomainErrors.Chat` con errores específicos
 
 **Entregables:**
-- Chat funcionando con RAG
-- Respuestas con referencias a documentos
-- Soporte para múltiples proveedores de LLM
+- [x] Chat funcionando con RAG (backend)
+- [x] Respuestas con referencias a documentos
+- [x] Soporte para múltiples proveedores de LLM
+- [ ] Endpoint REST (ChatController)
+- [ ] Conexión con UI
 
 **Tests:**
-- Tests de búsqueda de contexto
-- Tests de construcción de prompt
-- Tests de integración con LLM (mock)
+- [ ] Tests de búsqueda de contexto
+- [ ] Tests de construcción de prompt
+- [ ] Tests de integración con LLM (mock)
 
 ---
 
@@ -577,20 +593,20 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
           │
           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ FASE 7: Vectorización ⏳                                         │
+│ FASE 7: Vectorización ✅                                        │
 │ Chunking, Embeddings, Qdrant                                    │
 └─────────────────────────────────────────────────────────────────┘
           │
           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ FASE 8: Borrado de Documentos ✅ (básico)                        │
+│ FASE 8: Borrado de Documentos ✅ (básico)                       │
 │ BD + NAS (+ Qdrant pendiente)                                   │
 └─────────────────────────────────────────────────────────────────┘
           │
           ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ FASE 9: Asistentes IA                                           │
-│ Semantic Kernel, RAG                                            │
+│ FASE 9: Asistentes IA ⏳                                        │
+│ Semantic Kernel, RAG (backend completo, falta UI/API)          │
 └─────────────────────────────────────────────────────────────────┘
           │
           ▼
@@ -618,36 +634,38 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 | 4 | Storage NAS | Baja | 15 | ✅ |
 | 5 | Upload Docs | Media | 33 | ✅ |
 | 6 | Hangfire | Alta | ~5 | ✅ (parcial) |
-| 7 | Vectorización | Alta | 19 | ⏳ En progreso |
+| 7 | Vectorización | Alta | 19 | ✅ |
 | 8 | Borrado | Media | 4 | ✅ (básico) |
-| 9 | IA/RAG | Alta | ~15 | Pendiente |
+| 9 | IA/RAG | Alta | 0 | ⏳ En progreso |
 | 10 | Chat UI | Media | ~10 | Pendiente |
 | 11 | Pulido | Variable | ~10 | Pendiente |
 
-**Tests actuales:** 194 (27 domain + 84 application + 83 infrastructure)
-**Total estimado adicional:** ~50 tests más
+**Tests actuales:** 111 (27 domain + 84 application)
+**Total estimado adicional:** ~30 tests más
 
 ---
 
 ## Próximos Pasos Inmediatos
 
-1. **Verificar flujo completo de procesamiento:**
-   - Subir archivo .txt desde WebUI
-   - Verificar que aparece job en Hangfire dashboard
-   - Verificar que estado cambia a Completed
-   - Verificar que contenido se extrae
+1. **Completar Fase 9 - Chat RAG:**
+   - Crear `ChatController` con endpoints REST:
+     - `POST /api/projects/{projectId}/chat`
+     - `POST /api/projects/{projectId}/chat/stream` (streaming)
+   - Conectar `ChatWindow.razor` con `ChatQuery` via MediatR
+   - Tests unitarios de `ChatQueryHandler`
 
-2. **Implementar extracción de PDF:**
-   - Agregar paquete PdfPig
-   - Implementar `ExtractFromPdfAsync`
+2. **Fase 10 - Chat UI:**
+   - Implementar streaming de respuestas en Blazor
+   - Mostrar referencias como enlaces clicables
+   - Indicador de "escribiendo..."
 
-3. **Implementar extracción de Office:**
-   - Agregar paquete DocumentFormat.OpenXml
-   - Implementar `ExtractFromOfficeDocumentAsync`
+3. **Pendientes de Fase 6:**
+   - Implementar extracción de PDF (PdfPig)
+   - Implementar extracción de Office (OpenXml)
 
-4. **Verificar vectorización:**
-   - Asegurar que embeddings se generan
-   - Asegurar que se guardan en Qdrant
+4. **Tests adicionales:**
+   - Tests de IChatService
+   - Tests de búsqueda vectorial
 
 ---
 
@@ -691,18 +709,29 @@ Cada fase se considera completa cuando:
 
 ---
 
-## Cambios Recientes (2026-01-26)
+## Cambios Recientes (2026-01-30)
 
-### Bugfix: Procesamiento de Documentos
+### Fase 9: Servicio de Chat RAG
+- **Implementado:** Backend completo de chat RAG
+- **Archivos nuevos:**
+  - `IChatService` - Interfaz del servicio
+  - `SemanticKernelChatService` - Implementación RAG
+  - `ChatQuery/Handler/Validator` - MediatR integration
+  - `DomainErrors.Chat` - Errores específicos
+- **Modificados:**
+  - `IVectorStoreService` - Agregado `SearchAsync()` y `VectorSearchResult`
+  - `QdrantVectorStoreService` - Implementación de búsqueda vectorial
+  - `DependencyInjection.cs` - Chat Completion (OpenAI/Ollama)
+
+### Bugfix Anterior (2026-01-26): Procesamiento de Documentos
 - **Problema:** Documentos no se procesaban después de subirse
 - **Causa:** WebUI no tenía Hangfire configurado
 - **Solución:**
   - Método `AddHangfireServices()` centralizado en `DependencyInjection.cs`
   - Hangfire habilitado en WebUI
   - `IDocumentProcessingQueue` ahora es requerido (no nullable)
-  - Test actualizado para incluir mock del processing queue
 
 ---
 
 *Documento creado: 2025-01-25*
-*Última actualización: 2026-01-26 - Bugfix Hangfire en WebUI*
+*Última actualización: 2026-01-30 - Fase 9: Servicio de Chat RAG*

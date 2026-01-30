@@ -120,4 +120,35 @@ public static class DomainErrors
             "Vectorization.ProviderNotConfigured",
             "El proveedor de embeddings no está configurado correctamente.");
     }
+
+    public static class Chat
+    {
+        public static readonly Error ProjectNotFound = new(
+            "Chat.ProjectNotFound",
+            "El proyecto no fue encontrado.");
+
+        public static readonly Error NoVectorizedDocuments = new(
+            "Chat.NoVectorizedDocuments",
+            "El proyecto no tiene documentos procesados para consulta.");
+
+        public static readonly Error MessageRequired = new(
+            "Chat.MessageRequired",
+            "El mensaje de consulta es requerido.");
+
+        public static readonly Error MessageTooLong = new(
+            "Chat.MessageTooLong",
+            "El mensaje excede la longitud máxima permitida.");
+
+        public static readonly Error EmbeddingFailed = new(
+            "Chat.EmbeddingFailed",
+            "Error al generar embedding de la consulta.");
+
+        public static readonly Error SearchFailed = new(
+            "Chat.SearchFailed",
+            "Error en la búsqueda de documentos relevantes.");
+
+        public static readonly Error LlmFailed = new(
+            "Chat.LlmFailed",
+            "Error al generar respuesta del modelo de lenguaje.");
+    }
 }
