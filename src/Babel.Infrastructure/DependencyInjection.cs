@@ -5,6 +5,8 @@ using Babel.Infrastructure.Jobs;
 using Babel.Infrastructure.Queues;
 using Babel.Infrastructure.Repositories;
 using Babel.Infrastructure.Services;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -74,13 +76,7 @@ public static class DependencyInjection
         // Text Extraction Service
         services.AddScoped<ITextExtractionService, TextExtractionService>();
 
-        // Document Processing Job (registrado siempre, pero solo funciona si Hangfire está habilitado)
-        // Asegurar que exista una implementación de IDocumentProcessingQueue.
-        // Si existe una implementación específica (p. ej. HangfireDocumentProcessingQueue) se debe registrar
-        // en función de la configuración. Aquí registramos una implementación en memoria por defecto
-        // para evitar fallos de validación del contenedor DI cuando la cola no esté configurada.
-        services.AddScoped<IDocumentProcessingQueue, InMemoryDocumentProcessingQueue>();
-
+        // Document Processing Jobs
         services.AddScoped<DocumentProcessingJob>();
 
         // Vectorization Services
@@ -155,5 +151,63 @@ public static class DependencyInjection
         // pueden no registrar exactamente ese contrato en el ServiceProvider interno del Kernel.
 
         services.AddSingleton(kernel);
+    }
+
+    /// <summary>
+    /// Agrega los servicios de Hangfire para procesamiento en segundo plano.
+    /// Debe llamarse DESPUÉS de AddInfrastructure.
+    /// </summary>
+    /// <param name="services">Colección de servicios</param>
+    /// <param name="configuration">Configuración de la aplicación</param>
+    /// <returns>True si Hangfire fue habilitado, false si no hay connection string</returns>
+    public static bool AddHangfireServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var hangfireConnection = configuration.GetConnectionString("HangfireConnection");
+        if (string.IsNullOrWhiteSpace(hangfireConnection))
+            hangfireConnection = configuration.GetConnectionString("DefaultConnection");
+
+        var hangfireEnabled = !string.IsNullOrWhiteSpace(hangfireConnection);
+
+        if (hangfireEnabled)
+        {
+            var hangfireOptions = configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>()
+                ?? new HangfireOptions();
+
+            services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(hangfireConnection, new SqlServerStorageOptions
+                {
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                    QueuePollInterval = TimeSpan.Zero,
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks = true,
+                    SchemaName = "HangFire"
+                }));
+
+            // Add Hangfire Server
+            services.AddHangfireServer(options =>
+            {
+                options.WorkerCount = hangfireOptions.WorkerCount;
+                options.Queues = new[] { "default", "documents" };
+            });
+
+            // Registrar servicios de procesamiento que dependen de Hangfire
+            services.AddScoped<IBackgroundJobService, HangfireBackgroundJobService>();
+            services.AddScoped<IDocumentProcessingQueue, DocumentProcessingQueue>();
+        }
+        else
+        {
+            // Fallback: registrar implementación no-op que advierte al usuario
+            services.AddScoped<IDocumentProcessingQueue, InMemoryDocumentProcessingQueue>();
+            Console.WriteLine("WARNING: Hangfire deshabilitado - no hay cadena de conexión configurada. " +
+                "Los documentos NO serán procesados automáticamente.");
+        }
+
+        return hangfireEnabled;
     }
 }

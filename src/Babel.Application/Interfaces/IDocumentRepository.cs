@@ -73,4 +73,11 @@ public interface IDocumentRepository : IRepository<Document>
     Task<IReadOnlyList<Document>> GetPendingOcrReviewAsync(
         Guid? projectId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Marca un documento como vectorizado usando update directo (evita conflictos de concurrencia).
+    /// </summary>
+    Task MarkAsVectorizedAsync(
+        Guid documentId,
+        CancellationToken cancellationToken = default);
 }

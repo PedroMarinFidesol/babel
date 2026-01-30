@@ -17,7 +17,7 @@ public sealed class UploadDocumentCommandHandler : ICommandHandler<UploadDocumen
     private readonly IStorageService _storageService;
     private readonly IFileTypeDetector _fileTypeDetector;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IDocumentProcessingQueue? _processingQueue;
+    private readonly IDocumentProcessingQueue _processingQueue;
 
     public UploadDocumentCommandHandler(
         IProjectRepository projectRepository,
@@ -25,7 +25,7 @@ public sealed class UploadDocumentCommandHandler : ICommandHandler<UploadDocumen
         IStorageService storageService,
         IFileTypeDetector fileTypeDetector,
         IUnitOfWork unitOfWork,
-        IDocumentProcessingQueue? processingQueue = null)
+        IDocumentProcessingQueue processingQueue)
     {
         _projectRepository = projectRepository;
         _documentRepository = documentRepository;
@@ -114,7 +114,7 @@ public sealed class UploadDocumentCommandHandler : ICommandHandler<UploadDocumen
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // 9. Encolar procesamiento en segundo plano
-        _processingQueue?.EnqueueTextExtraction(document.Id);
+        _processingQueue.EnqueueTextExtraction(document.Id);
 
         // 10. Mapear a DTO y retornar
         var documentDto = new DocumentDto

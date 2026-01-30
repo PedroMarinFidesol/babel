@@ -1,36 +1,33 @@
 using Babel.Application.Common;
 using Babel.Application.Interfaces;
 using Babel.Infrastructure.Configuration;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Embeddings;
+
+#pragma warning disable SKEXP0001 // ITextEmbeddingGenerationService is experimental
 
 namespace Babel.Infrastructure.Services;
 
 /// <summary>
-/// Servicio de embeddings usando Microsoft.Extensions.AI.
+/// Servicio de embeddings usando Semantic Kernel.
 /// Soporta múltiples proveedores (Ollama, OpenAI) según configuración.
 /// </summary>
 public class SemanticKernelEmbeddingService : IEmbeddingService
 {
-    private readonly IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator;
-    private readonly Microsoft.SemanticKernel.Kernel? _kernel;
-    private readonly SemanticKernelOptions _options;
+    private readonly Kernel? _kernel;
     private readonly QdrantOptions _qdrantOptions;
     private readonly ILogger<SemanticKernelEmbeddingService> _logger;
 
-        public SemanticKernelEmbeddingService(
-        IOptions<SemanticKernelOptions> options,
+    public SemanticKernelEmbeddingService(
         IOptions<QdrantOptions> qdrantOptions,
         ILogger<SemanticKernelEmbeddingService> logger,
-        Microsoft.SemanticKernel.Kernel? kernel = null,
-        IEmbeddingGenerator<string, Embedding<float>>? embeddingGenerator = null)
+        Kernel? kernel = null)
     {
-        _options = options.Value;
         _qdrantOptions = qdrantOptions.Value;
         _logger = logger;
         _kernel = kernel;
-        _embeddingGenerator = embeddingGenerator;
     }
 
     /// <inheritdoc />
@@ -43,62 +40,32 @@ public class SemanticKernelEmbeddingService : IEmbeddingService
             return Result.Failure<ReadOnlyMemory<float>>(DomainErrors.Vectorization.EmptyContent);
         }
 
-        if (_embeddingGenerator is null)
+        var embeddingService = GetEmbeddingService();
+        if (embeddingService is null)
         {
-            // Intentar resolver el generador desde el Kernel si está disponible
-            if (_kernel is not null)
-            {
-                try
-                {
-                    var svc = _kernel.Services.GetService(typeof(IEmbeddingGenerator<string, Embedding<float>>));
-                    if (svc is IEmbeddingGenerator<string, Embedding<float>> gen)
-                    {
-                        _logger.LogDebug("Resolved embedding generator from Kernel's service provider");
-                        // Reasignar campo local para futuras llamadas
-                        // Nota: reflection no necesario porque ya comprobamos el tipo
-                        // Usar el generador resuelto
-                        var embedding = await gen.GenerateAsync(text, cancellationToken: cancellationToken);
-
-                        if (embedding is null)
-                        {
-                            _logger.LogError("El generador de embeddings retornó null");
-                            return Result.Failure<ReadOnlyMemory<float>>(DomainErrors.Vectorization.EmbeddingFailed);
-                        }
-
-                        _logger.LogDebug(
-                            "Embedding generado exitosamente. Dimensiones: {Dimensions}",
-                            embedding.Vector.Length);
-
-                        return Result.Success(embedding.Vector);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error resolviendo IEmbeddingGenerator desde Kernel");
-                }
-            }
-
             _logger.LogWarning("Embedding generator no está configurado");
             return Result.Failure<ReadOnlyMemory<float>>(DomainErrors.Vectorization.ProviderNotConfigured);
         }
 
         try
         {
-            var embedding = await _embeddingGenerator.GenerateAsync(
-                text,
+            var embeddings = await embeddingService.GenerateEmbeddingsAsync(
+                new[] { text },
+                kernel: _kernel,
                 cancellationToken: cancellationToken);
 
-            if (embedding is null)
+            if (embeddings is null || embeddings.Count == 0)
             {
-                _logger.LogError("El generador de embeddings retornó null");
+                _logger.LogError("El generador de embeddings retornó null o vacío");
                 return Result.Failure<ReadOnlyMemory<float>>(DomainErrors.Vectorization.EmbeddingFailed);
             }
 
+            var vector = embeddings[0];
             _logger.LogDebug(
                 "Embedding generado exitosamente. Dimensiones: {Dimensions}",
-                embedding.Vector.Length);
+                vector.Length);
 
-            return Result.Success(embedding.Vector);
+            return Result.Success(vector);
         }
         catch (Exception ex)
         {
@@ -118,7 +85,8 @@ public class SemanticKernelEmbeddingService : IEmbeddingService
             return Result.Failure<IReadOnlyList<ReadOnlyMemory<float>>>(DomainErrors.Vectorization.EmptyContent);
         }
 
-        if (_embeddingGenerator is null)
+        var embeddingService = GetEmbeddingService();
+        if (embeddingService is null)
         {
             _logger.LogWarning("Embedding generator no está configurado");
             return Result.Failure<IReadOnlyList<ReadOnlyMemory<float>>>(DomainErrors.Vectorization.ProviderNotConfigured);
@@ -126,8 +94,9 @@ public class SemanticKernelEmbeddingService : IEmbeddingService
 
         try
         {
-            var embeddings = await _embeddingGenerator.GenerateAsync(
-                texts,
+            var embeddings = await embeddingService.GenerateEmbeddingsAsync(
+                texts.ToList(),
+                kernel: _kernel,
                 cancellationToken: cancellationToken);
 
             if (embeddings is null || embeddings.Count != texts.Count)
@@ -138,15 +107,11 @@ public class SemanticKernelEmbeddingService : IEmbeddingService
                 return Result.Failure<IReadOnlyList<ReadOnlyMemory<float>>>(DomainErrors.Vectorization.EmbeddingFailed);
             }
 
-            var vectors = embeddings
-                .Select(e => e.Vector)
-                .ToList();
-
             _logger.LogDebug(
                 "Embeddings generados exitosamente. Cantidad: {Count}, Dimensiones: {Dimensions}",
-                vectors.Count, vectors.FirstOrDefault().Length);
+                embeddings.Count, embeddings.FirstOrDefault().Length);
 
-            return Result.Success<IReadOnlyList<ReadOnlyMemory<float>>>(vectors);
+            return Result.Success<IReadOnlyList<ReadOnlyMemory<float>>>(embeddings.ToList());
         }
         catch (Exception ex)
         {
@@ -159,7 +124,26 @@ public class SemanticKernelEmbeddingService : IEmbeddingService
     /// <inheritdoc />
     public int GetVectorDimension()
     {
-        // Usar el tamaño configurado en Qdrant, que debe coincidir con el modelo de embedding
         return _qdrantOptions.VectorSize;
+    }
+
+    private ITextEmbeddingGenerationService? GetEmbeddingService()
+    {
+        if (_kernel is null)
+        {
+            _logger.LogWarning("Kernel no está configurado");
+            return null;
+        }
+
+        try
+        {
+            var service = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+            return service;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo resolver ITextEmbeddingGenerationService del Kernel");
+            return null;
+        }
     }
 }

@@ -119,4 +119,18 @@ public sealed class DocumentRepository : RepositoryBase<Document>, IDocumentRepo
             .OrderBy(d => d.ProcessedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task MarkAsVectorizedAsync(
+        Guid documentId,
+        CancellationToken cancellationToken = default)
+    {
+        await DbSet
+            .Where(d => d.Id == documentId)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(d => d.IsVectorized, true)
+                    .SetProperty(d => d.VectorizedAt, DateTime.UtcNow)
+                    .SetProperty(d => d.UpdatedAt, DateTime.UtcNow),
+                cancellationToken);
+    }
 }

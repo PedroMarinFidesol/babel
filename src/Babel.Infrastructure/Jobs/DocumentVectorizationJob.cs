@@ -169,13 +169,8 @@ public class DocumentVectorizationJob
             throw new InvalidOperationException($"Error guardando en Qdrant: {upsertResult.Error.Description}");
         }
 
-        // 8. Marcar documento como vectorizado
-        document.IsVectorized = true;
-        document.VectorizedAt = DateTime.UtcNow;
-        document.UpdatedAt = DateTime.UtcNow;
-
-        // 9. Guardar cambios en BD
-        await _unitOfWork.SaveChangesAsync();
+        // 8. Marcar documento como vectorizado (update directo para evitar conflictos de concurrencia)
+        await _documentRepository.MarkAsVectorizedAsync(documentId);
 
         _logger.LogInformation(
             "Documento {DocumentId} vectorizado exitosamente. Chunks: {ChunkCount}, Dimensiones: {Dimensions}",

@@ -15,6 +15,7 @@ public class UploadDocumentCommandHandlerTests
     private readonly IStorageService _storageService;
     private readonly IFileTypeDetector _fileTypeDetector;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDocumentProcessingQueue _processingQueue;
     private readonly UploadDocumentCommandHandler _handler;
 
     public UploadDocumentCommandHandlerTests()
@@ -24,13 +25,15 @@ public class UploadDocumentCommandHandlerTests
         _storageService = Substitute.For<IStorageService>();
         _fileTypeDetector = Substitute.For<IFileTypeDetector>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
+        _processingQueue = Substitute.For<IDocumentProcessingQueue>();
 
         _handler = new UploadDocumentCommandHandler(
             _projectRepository,
             _documentRepository,
             _storageService,
             _fileTypeDetector,
-            _unitOfWork);
+            _unitOfWork,
+            _processingQueue);
     }
 
     [Fact]
@@ -65,6 +68,7 @@ public class UploadDocumentCommandHandlerTests
 
         _documentRepository.Received(1).Add(Arg.Any<Babel.Domain.Entities.Document>());
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        _processingQueue.Received(1).EnqueueTextExtraction(Arg.Any<Guid>());
     }
 
     [Fact]
