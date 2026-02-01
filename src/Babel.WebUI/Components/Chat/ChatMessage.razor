@@ -19,7 +19,7 @@
                                      Size="Size.Small"
                                      Color="Color.Primary"
                                      Variant="Variant.Outlined"
-                                     OnClick="@(() => OnReferenceClick.InvokeAsync(reference.DocumentId))"
+                                      OnClick="@(() => OnReferenceClick.InvokeAsync((reference.DocumentId, reference.ChunkIndex)))"
                                      Style="cursor: pointer;">
                                 <MudIcon Icon="@Icons.Material.Filled.Description"
                                          Size="Size.Small" Class="mr-1" />
@@ -49,7 +49,7 @@
     public ChatMessageDto? Message { get; set; }
 
     [Parameter]
-    public EventCallback<Guid> OnReferenceClick { get; set; }
+    public EventCallback<(Guid DocumentId, int? ChunkIndex)> OnReferenceClick { get; set; }
 
     private string GetMessageContainerClass()
     {

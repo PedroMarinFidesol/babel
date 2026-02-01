@@ -113,12 +113,18 @@ public class SemanticKernelChatService : IChatService
         // 5. Recuperar contenido de chunks desde la BD
         var (context, references) = await BuildContextAsync(vectorResults, cancellationToken);
 
+        // Eliminar duplicados de referencias (mismo DocumentId)
+        var uniqueReferences = references
+            .GroupBy(r => r.DocumentId)
+            .Select(g => g.OrderByDescending(r => r.RelevanceScore).First())
+            .ToList();
+
         if (string.IsNullOrWhiteSpace(context))
         {
             return Result.Success(new ChatResponseDto
             {
                 Response = "No encontré documentos relevantes para tu pregunta en este proyecto.",
-                References = []
+                References = uniqueReferences
             });
         }
 
@@ -128,7 +134,7 @@ public class SemanticKernelChatService : IChatService
         return Result.Success(new ChatResponseDto
         {
             Response = response,
-            References = references
+            References = uniqueReferences
         });
     }
 
@@ -322,7 +328,8 @@ public class SemanticKernelChatService : IChatService
                     Snippet = chunk.Content.Length > 200
                         ? chunk.Content[..200] + "..."
                         : chunk.Content,
-                    RelevanceScore = vectorResult.SimilarityScore
+                    RelevanceScore = vectorResult.SimilarityScore,
+                    ChunkIndex = vectorResult.ChunkIndex
                 });
             }
         }

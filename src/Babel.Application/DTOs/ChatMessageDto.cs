@@ -15,6 +15,7 @@ public class DocumentReferenceDto
     public string FileName { get; set; } = string.Empty;
     public string? Snippet { get; set; }
     public double RelevanceScore { get; set; }
+    public int? ChunkIndex { get; set; }
 }
 
 public class ChatRequestDto
