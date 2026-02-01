@@ -119,9 +119,34 @@ public class ChatApiService : IChatApiService
                 else if (line.StartsWith("data: ") && currentEvent != null)
                 {
                     var data = line[6..];
-                    // Desescapar saltos de línea
-                    data = data.Replace("\\n", "\n");
-                    yield return new ChatStreamEvent(currentEvent, data);
+
+                    ChatStreamEvent streamEvent;
+
+                    if (currentEvent == "references")
+                    {
+                        streamEvent = new ChatStreamEvent(currentEvent, string.Empty);
+                        try
+                        {
+                            var refs = System.Text.Json.JsonSerializer.Deserialize<List<DocumentReferenceDto>>(
+                                data,
+                                new System.Text.Json.JsonSerializerOptions
+                                {
+                                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                                });
+                            streamEvent.References = refs ?? [];
+                        }
+                        catch
+                        {
+                            streamEvent.References = [];
+                        }
+                    }
+                    else
+                    {
+                        data = data.Replace("\\n", "\n");
+                        streamEvent = new ChatStreamEvent(currentEvent, data);
+                    }
+
+                    yield return streamEvent;
 
                     if (currentEvent is "done" or "error" or "cancelled")
                     {

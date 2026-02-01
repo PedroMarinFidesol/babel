@@ -94,13 +94,22 @@ public class ChunkingService : IChunkingService
     }
 
     /// <summary>
-    /// Normaliza el texto eliminando espacios en blanco excesivos.
+    /// Normaliza el texto preservando saltos de línea para mantener la estructura.
     /// </summary>
     private static string NormalizeText(string text)
     {
-        // Reemplazar múltiples espacios/newlines con un solo espacio
-        var normalized = System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ");
-        return normalized;
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+
+        // 1. Unificar saltos de línea
+        text = text.Replace("\r\n", "\n").Replace("\r", "\n");
+        
+        // 2. Reducir múltiples espacios horizontales (tabuladores, espacios) a uno solo
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[ \t]+", " ");
+        
+        // 3. Reducir múltiples saltos de línea (3+) a dos (párrafo)
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\n{3,}", "\n\n");
+        
+        return text.Trim();
     }
 
     /// <summary>

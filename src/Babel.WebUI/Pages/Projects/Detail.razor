@@ -3,9 +3,11 @@
 @using Babel.Application.Projects.Commands
 @using Babel.Application.Documents.Queries
 @using Babel.Application.Documents.Commands
+@using Microsoft.AspNetCore.Components.Web
 @inject IMediator Mediator
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>@(_project?.Name ?? "Proyecto") - Babel</PageTitle>
 
@@ -169,6 +171,89 @@ else if (_project is not null)
     </DialogActions>
 </MudDialog>
 
+@* Document Detail Dialog *@
+<MudDialog @bind-Visible="_showDocumentDialog" Options="DialogOptions.FullScreen">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
+            @_selectedDocument?.FileName
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoadingDocumentContent)
+        {
+            <div class="d-flex flex-column align-center pa-8">
+                <MudProgressCircular Size="Size.Large" Indeterminate="true" Class="mb-4" />
+                <MudText Typo="Typo.body1" Color="Color.Secondary">
+                    Cargando contenido...
+                </MudText>
+            </div>
+        }
+        else if (_documentContentError is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">
+                @_documentContentError
+            </MudAlert>
+        }
+        else
+        {
+            <MudPaper Elevation="1" Class="pa-4 mb-4" Style="max-height: 400px; overflow-y: auto;">
+                <MudText Typo="Typo.body2" Style="white-space: pre-wrap; line-height: 1.6;">
+                    @(_documentContent ?? "Sin contenido disponible")
+                </MudText>
+            </MudPaper>
+
+            @if (_selectedDocument is not null)
+            {
+                <MudGrid Class="mt-4">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tamaño:</MudText>
+                        <MudText Typo="Typo.body2">@_selectedDocument.FileSizeFormatted</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tipo:</MudText>
+                        <MudText Typo="Typo.body2">@_selectedDocument.MimeType</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Estado:</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedDocument.Status)" Variant="Variant.Filled">
+                            @GetStatusText(_selectedDocument.Status)
+                        </MudChip>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Procesado:</MudText>
+                        <MudText Typo="Typo.body2">@(_selectedDocument.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</MudText>
+                    </MudItem>
+                    @if (_selectedDocument.IsVectorized)
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Primary">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
+                                Este documento ha sido vectorizado y está disponible para búsquedas semánticas
+                            </MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_selectedDocument is not null && !_isLoadingDocumentContent)
+        {
+            <MudButton OnClick="@(() => _showDocumentDialog = false)">
+                Cerrar
+            </MudButton>
+            <MudButton Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       OnClick="@DownloadDocument"
+                       Disabled="@(!_selectedDocument.IsVectorized && _selectedDocument.Status != Domain.Enums.DocumentStatus.Completed)">
+                Descargar
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
 @* Delete Confirmation Dialog *@
 <MudDialog @bind-Visible="_showDeleteDialog">
     <TitleContent>
@@ -225,6 +310,13 @@ else if (_project is not null)
 
     // Document highlight state (from chat reference click)
     private Guid? _highlightedDocumentId;
+
+    // Document dialog state
+    private bool _showDocumentDialog;
+    private DocumentDto? _selectedDocument;
+    private string? _documentContent;
+    private bool _isLoadingDocumentContent;
+    private string? _documentContentError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -394,17 +486,17 @@ else if (_project is not null)
         }
     }
 
-    private void HandleDocumentClick(Guid documentId)
+    private async Task HandleDocumentClick(Guid documentId)
     {
-        _highlightedDocumentId = documentId;
-
-        // Buscar el documento y mostrar notificación
         var document = _documents.FirstOrDefault(d => d.Id == documentId);
-        if (document != null)
+        if (document == null)
         {
-            Snackbar.Add($"Documento: {document.FileName}", Severity.Info);
+            Snackbar.Add("Documento no encontrado", Severity.Warning);
+            return;
         }
 
+        // Resaltar en la tabla
+        _highlightedDocumentId = documentId;
         StateHasChanged();
 
         // Quitar highlight después de 3 segundos
@@ -413,6 +505,36 @@ else if (_project is not null)
             _highlightedDocumentId = null;
             InvokeAsync(StateHasChanged);
         });
+
+        // Abrir diálogo con información del documento
+        _selectedDocument = document;
+        _documentContent = null;
+        _documentContentError = null;
+        _isLoadingDocumentContent = true;
+        _showDocumentDialog = true;
+
+        // Cargar contenido del documento
+        try
+        {
+            var result = await Mediator.Send(new GetDocumentContentQuery(documentId));
+            if (result.IsSuccess)
+            {
+                _documentContent = result.Value ?? "Sin contenido disponible";
+            }
+            else
+            {
+                _documentContentError = result.Error.Description;
+            }
+        }
+        catch (Exception ex)
+        {
+            _documentContentError = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            _isLoadingDocumentContent = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleFilesUploaded(List<DocumentDto> documents)
@@ -501,5 +623,12 @@ else if (_project is not null)
             return "background-color: var(--mud-palette-primary-lighten); transition: background-color 0.3s ease;";
         }
         return "";
+    }
+
+    private void DownloadDocument()
+    {
+        if (_selectedDocument is null) return;
+
+        Navigation.NavigateTo($"/api/documents/{_selectedDocument.Id}/download", forceLoad: true);
     }
 }

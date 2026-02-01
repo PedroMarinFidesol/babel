@@ -214,6 +214,14 @@
                     await ScrollToBottomAsync();
                     break;
 
+                case "references":
+                    if (evt.References != null)
+                    {
+                        assistantMessage.References = evt.References;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    break;
+
                 case "error":
                     if (contentBuilder.Length == 0)
                     {

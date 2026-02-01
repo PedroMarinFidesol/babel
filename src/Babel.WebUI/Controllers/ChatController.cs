@@ -90,13 +90,29 @@ public class ChatController : ControllerBase
 
         try
         {
-            await foreach (var token in _chatService.ChatStreamAsync(
+            List<DocumentReferenceDto> references = [];
+
+            await foreach (var item in _chatService.ChatStreamWithReferencesAsync(
                 projectId, request.Message, cancellationToken))
             {
-                await WriteSSEAsync("token", token);
+                if (item.Item1 is string token)
+                {
+                    await WriteSSEAsync("token", token);
+                }
+                else if (item.Item1 is object marker && marker.GetType().GetProperty("__references") != null)
+                {
+                    references = item.Item2;
+                }
             }
 
             await WriteSSEAsync("done", "");
+
+            if (references.Count > 0)
+            {
+                var refsJson = System.Text.Json.JsonSerializer.Serialize(references,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+                await WriteSSEAsync("references", refsJson);
+            }
         }
         catch (OperationCanceledException)
         {

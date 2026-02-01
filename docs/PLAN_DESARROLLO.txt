@@ -374,7 +374,7 @@ Este documento define el roadmap completo para desarrollar Babel, un sistema de 
 - [x] Después de extracción → encolar VectorizationJob
 - [ ] Solo vectorizar documentos con Content no vacío
 - [ ] Manejar re-vectorización si contenido cambia
-- [x] **Verificar flujo end-to-end funciona**
+- [ ] **Verificar flujo end-to-end funciona**
 
 **Entregables:**
 - [x] Servicios de chunking, embedding y vector store implementados
@@ -723,12 +723,6 @@ Cada fase se considera completa cuando:
   - `QdrantVectorStoreService` - Implementación de búsqueda vectorial
   - `DependencyInjection.cs` - Chat Completion (OpenAI/Ollama)
 
-### Refactorización y Mejoras (2026-02-01)
-- **Fix Vectorización:** Corrección de `DbUpdateConcurrencyException` usando enfoque Command-Based (ExecuteDelete/Update) con transacciones.
-- **Mejora RAG:**
-  - Chunking modificado para preservar saltos de línea y párrafos.
-  - Umbral de búsqueda reducido a 0.3 para mejor recall.
-
 ### Bugfix Anterior (2026-01-26): Procesamiento de Documentos
 - **Problema:** Documentos no se procesaban después de subirse
 - **Causa:** WebUI no tenía Hangfire configurado
@@ -740,4 +734,4 @@ Cada fase se considera completa cuando:
 ---
 
 *Documento creado: 2025-01-25*
-*Última actualización: 2026-02-01 - Fix Concurrencia Vectorización y Mejoras RAG*
+*Última actualización: 2026-01-30 - Fase 9: Servicio de Chat RAG*

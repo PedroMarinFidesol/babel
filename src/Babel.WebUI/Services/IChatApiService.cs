@@ -1,4 +1,5 @@
 using Babel.Application.DTOs;
+using System.Text.Json.Serialization;
 
 namespace Babel.WebUI.Services;
 
@@ -35,6 +36,12 @@ public interface IChatApiService
 /// <summary>
 /// Evento de streaming del chat (SSE).
 /// </summary>
-/// <param name="EventType">Tipo de evento: token, done, error, cancelled</param>
+/// <param name="EventType">Tipo de evento: token, done, error, cancelled, references</param>
 /// <param name="Data">Datos del evento</param>
-public record ChatStreamEvent(string EventType, string Data);
+public record ChatStreamEvent(string EventType, string Data)
+{
+    [JsonIgnore]
+    public List<DocumentReferenceDto>? References { get; set; }
+    
+    public ChatStreamEvent WithData(string newData) => this with { Data = newData };
+};

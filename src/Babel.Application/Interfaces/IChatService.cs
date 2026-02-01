@@ -35,4 +35,17 @@ public interface IChatService
         Guid projectId,
         string message,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Procesa una pregunta del usuario usando RAG con streaming de respuesta y referencias.
+    /// Útil para mostrar la respuesta progresivamente en la UI junto con las referencias.
+    /// </summary>
+    /// <param name="projectId">ID del proyecto para limitar la búsqueda</param>
+    /// <param name="message">Pregunta del usuario</param>
+    /// <param name="cancellationToken">Token de cancelación</param>
+    /// <returns>Stream de (token o referencias, respuesta)</returns>
+    IAsyncEnumerable<(object, List<DocumentReferenceDto>)> ChatStreamWithReferencesAsync(
+        Guid projectId,
+        string message,
+        CancellationToken cancellationToken = default);
 }

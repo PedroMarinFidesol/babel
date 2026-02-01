@@ -195,7 +195,7 @@ Similitud = cos(θ)
 **Propósito:** Divide texto largo en fragmentos manejables.
 
 **Algoritmo:**
-1. Normaliza whitespace (múltiples espacios → espacio único)
+1. Normaliza whitespace **preservando párrafos** (unifica saltos de línea, reduce espacios múltiples)
 2. Si texto ≤ MaxChunkSize: retorna chunk único
 3. Si texto > MaxChunkSize:
    - Busca puntos de corte naturales (. ! ? seguidos de espacio)
@@ -293,7 +293,10 @@ var results = await _vectorStoreService.SearchAsync(
 4. Divide en chunks con ChunkingService
 5. Genera embeddings en batch
 6. Guarda en Qdrant primero
-7. Guarda documento + chunks en SQL Server (transacción)
+7. Guarda documento + chunks en SQL Server (**Transactions + Command-Based**):
+   - Elimina chunks antiguos con `ExecuteDeleteAsync`
+   - Inserta nuevos con `AddRangeAsync`
+   - Actualiza estado del documento con `ExecuteUpdateAsync`
 
 ---
 
@@ -515,11 +518,16 @@ USER: ¿Cuál es el plazo de entrega del contrato?
 
 **Causa:** Conflicto entre ExecuteUpdateAsync y tracking de EF.
 
-**Solución:** Actualizar propiedades en memoria antes de SaveChangesAsync:
+**Solución:** Usar estrategia **Command-Based** con Transacciones explícitas.
+En lugar de depender del Change Tracker de EF Core, usar comandos directos:
+
 ```csharp
-document.IsVectorized = true;
-document.VectorizedAt = DateTime.UtcNow;
-await _unitOfWork.SaveChangesAsync();
+using var transaction = await _dbContext.Database.BeginTransactionAsync();
+// ... operaciones de borrado/inserción ...
+await _dbContext.Documents
+    .Where(d => d.Id == documentId)
+    .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsVectorized, true)...);
+await transaction.CommitAsync();
 ```
 
 ### 8.5 Chunks no aparecen en búsqueda

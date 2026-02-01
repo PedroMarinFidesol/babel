@@ -1,6 +1,7 @@
 using Babel.Application.Interfaces;
 using Babel.Domain.Entities;
 using Babel.Domain.Enums;
+using Babel.Infrastructure.Data;
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,6 +20,7 @@ public class DocumentVectorizationJob
     private readonly IEmbeddingService _embeddingService;
     private readonly IVectorStoreService _vectorStoreService;
     private readonly ILogger<DocumentVectorizationJob> _logger;
+    private readonly BabelDbContext _dbContext;
 
     public DocumentVectorizationJob(
         IDocumentRepository documentRepository,
@@ -26,7 +28,8 @@ public class DocumentVectorizationJob
         IChunkingService chunkingService,
         IEmbeddingService embeddingService,
         IVectorStoreService vectorStoreService,
-        ILogger<DocumentVectorizationJob> logger)
+        ILogger<DocumentVectorizationJob> logger,
+        BabelDbContext dbContext)
     {
         _documentRepository = documentRepository;
         _unitOfWork = unitOfWork;
@@ -34,6 +37,7 @@ public class DocumentVectorizationJob
         _embeddingService = embeddingService;
         _vectorStoreService = vectorStoreService;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     /// <summary>
@@ -46,84 +50,66 @@ public class DocumentVectorizationJob
     {
         _logger.LogInformation("Iniciando vectorización para documento {DocumentId}", documentId);
 
-        // 1. Obtener documento con chunks existentes
-        var document = await _documentRepository.GetByIdWithChunksAsync(documentId);
+        // =========================================================================================
+        // FASE 1: LEER DATOS (READ-ONLY)
+        // =========================================================================================
+        
+        var initialDoc = await _documentRepository.GetByIdWithChunksAsync(documentId);
 
-        if (document is null)
+        if (initialDoc is null)
         {
             _logger.LogWarning("Documento {DocumentId} no encontrado para vectorización", documentId);
             throw new InvalidOperationException($"Documento {documentId} no encontrado");
         }
 
-        // 2. Validar que el documento está listo para vectorización
-        if (string.IsNullOrWhiteSpace(document.Content))
+        if (string.IsNullOrWhiteSpace(initialDoc.Content))
         {
-            _logger.LogWarning(
-                "Documento {DocumentId} no tiene contenido para vectorizar",
-                documentId);
+            _logger.LogWarning("Documento {DocumentId} no tiene contenido", documentId);
             throw new InvalidOperationException("El documento no tiene contenido para vectorizar");
         }
 
-        if (document.Status != DocumentStatus.Completed)
+        if (initialDoc.Status != DocumentStatus.Completed)
         {
-            _logger.LogWarning(
-                "Documento {DocumentId} no está en estado Completed. Estado actual: {Status}",
-                documentId, document.Status);
-            throw new InvalidOperationException($"El documento debe estar en estado Completed, estado actual: {document.Status}");
+            _logger.LogWarning("Documento {DocumentId} no está en estado Completed", documentId);
+            throw new InvalidOperationException($"Estado inválido: {initialDoc.Status}");
         }
 
-        // 3. Si ya estaba vectorizado, eliminar chunks existentes (re-vectorización)
-        if (document.IsVectorized || document.Chunks.Count > 0)
-        {
-            _logger.LogInformation(
-                "Re-vectorizando documento {DocumentId}. Eliminando {ChunkCount} chunks existentes",
-                documentId, document.Chunks.Count);
+        string content = initialDoc.Content;
+        string fileName = initialDoc.FileName;
+        Guid projectId = initialDoc.ProjectId;
+        
+        // Liberamos contexto
+        initialDoc = null; 
 
-            // Eliminar de Qdrant
-            var deleteResult = await _vectorStoreService.DeleteByDocumentIdAsync(documentId);
-            if (deleteResult.IsFailure)
-            {
-                _logger.LogWarning(
-                    "Error eliminando puntos de Qdrant para documento {DocumentId}: {Error}",
-                    documentId, deleteResult.Error.Description);
-            }
+        // =========================================================================================
+        // FASE 2: PROCESAMIENTO PESADO (SIN BD)
+        // =========================================================================================
 
-            // Eliminar chunks de la BD
-            document.Chunks.Clear();
-            document.IsVectorized = false;
-            document.VectorizedAt = null;
-        }
-
-        // 4. Dividir contenido en chunks
-        var chunkResults = _chunkingService.ChunkText(document.Content, documentId);
+        // Chunking
+        var chunkResults = _chunkingService.ChunkText(content, documentId);
 
         if (chunkResults.Count == 0)
         {
-            _logger.LogWarning(
-                "Chunking no produjo resultados para documento {DocumentId}",
-                documentId);
+            _logger.LogWarning("Chunking no produjo resultados para {DocumentId}", documentId);
             throw new InvalidOperationException("El chunking no produjo resultados");
         }
 
-        _logger.LogInformation(
-            "Documento {DocumentId} dividido en {ChunkCount} chunks",
-            documentId, chunkResults.Count);
+        _logger.LogInformation("Documento {DocumentId}: {ChunkCount} chunks generados", documentId, chunkResults.Count);
 
-        // 5. Generar embeddings en batch
+        // Embeddings
         var textsToEmbed = chunkResults.Select(c => c.Content).ToList();
         var embeddingsResult = await _embeddingService.GenerateEmbeddingsAsync(textsToEmbed);
 
         if (embeddingsResult.IsFailure)
         {
-            _logger.LogError(
-                "Error generando embeddings para documento {DocumentId}: {Error}",
-                documentId, embeddingsResult.Error.Description);
-            throw new InvalidOperationException($"Error generando embeddings: {embeddingsResult.Error.Description}");
+            _logger.LogError("Error generando embeddings: {Error}", embeddingsResult.Error.Description);
+            throw new InvalidOperationException($"Error embeddings: {embeddingsResult.Error.Description}");
         }
 
         var embeddings = embeddingsResult.Value;
 
-        // 6. Crear DocumentChunks y preparar datos para Qdrant
+        // Preparar datos
+        var newChunkEntities = new List<DocumentChunk>();
         var chunksForQdrant = new List<(Guid PointId, ReadOnlyMemory<float> Embedding, ChunkPayload Payload)>();
 
         for (int i = 0; i < chunkResults.Count; i++)
@@ -132,7 +118,6 @@ public class DocumentVectorizationJob
             var embedding = embeddings[i];
             var pointId = Guid.NewGuid();
 
-            // Crear entidad DocumentChunk
             var documentChunk = new DocumentChunk
             {
                 Id = Guid.NewGuid(),
@@ -146,42 +131,64 @@ public class DocumentVectorizationJob
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
+            newChunkEntities.Add(documentChunk);
 
-            document.Chunks.Add(documentChunk);
-
-            // Preparar para Qdrant
             var payload = new ChunkPayload(
                 DocumentId: documentId,
-                ProjectId: document.ProjectId,
+                ProjectId: projectId,
                 ChunkIndex: chunkResult.ChunkIndex,
-                FileName: document.FileName);
+                FileName: fileName);
 
             chunksForQdrant.Add((pointId, embedding, payload));
         }
 
-        // 8. Guardar en Qdrant PRIMERO (si falla, no guardamos en BD)
+        // Qdrant Upsert (Idempotente)
+        await _vectorStoreService.DeleteByDocumentIdAsync(documentId);
+        
         var upsertResult = await _vectorStoreService.UpsertChunksAsync(chunksForQdrant);
-
         if (upsertResult.IsFailure)
         {
-            _logger.LogError(
-                "Error insertando chunks en Qdrant para documento {DocumentId}: {Error}",
-                documentId, upsertResult.Error.Description);
-            throw new InvalidOperationException($"Error guardando en Qdrant: {upsertResult.Error.Description}");
+             _logger.LogError("Error insertando en Qdrant: {Error}", upsertResult.Error.Description);
+            throw new InvalidOperationException($"Error Qdrant: {upsertResult.Error.Description}");
         }
 
-        // 9. Guardar todo en SQL Server (chunks + actualización de documento)
-        document.IsVectorized = true;
-        document.VectorizedAt = DateTime.UtcNow;
+        // =========================================================================================
+        // FASE 3: PERSISTENCIA (COMMAND-BASED + TRANSACTION)
+        // Usamos comandos directos para evitar conflictos de concurrencia y tracking de EF.
+        // =========================================================================================
 
-        await _unitOfWork.SaveChangesAsync();
+        using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-        _logger.LogDebug(
-            "Documento {DocumentId} actualizado (chunks + estado) en SQL Server",
-            documentId);
+        try 
+        {
+            // 1. Eliminar chunks anteriores (si existen) directamente
+            await _dbContext.DocumentChunks
+                .Where(c => c.DocumentId == documentId)
+                .ExecuteDeleteAsync();
 
-        _logger.LogInformation(
-            "Documento {DocumentId} vectorizado exitosamente. Chunks: {ChunkCount}, Dimensiones: {Dimensions}",
-            documentId, chunkResults.Count, _embeddingService.GetVectorDimension());
+            // 2. Insertar nuevos chunks (EF Tracking solo para nuevos objetos)
+            await _dbContext.DocumentChunks.AddRangeAsync(newChunkEntities);
+            await _dbContext.SaveChangesAsync();
+
+            // 3. Actualizar documento directamente
+            await _dbContext.Documents
+                .Where(d => d.Id == documentId)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(d => d.IsVectorized, true)
+                    .SetProperty(d => d.VectorizedAt, DateTime.UtcNow)
+                    .SetProperty(d => d.UpdatedAt, DateTime.UtcNow));
+
+            await transaction.CommitAsync();
+
+            _logger.LogInformation(
+                "Documento {DocumentId} vectorizado exitosamente. Chunks en SQL: {ChunkCount}", 
+                documentId, newChunkEntities.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en transacción SQL para documento {DocumentId}", documentId);
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }

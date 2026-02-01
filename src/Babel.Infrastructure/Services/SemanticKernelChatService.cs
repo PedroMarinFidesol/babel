@@ -24,7 +24,7 @@ public class SemanticKernelChatService : IChatService
     private readonly ILogger<SemanticKernelChatService> _logger;
 
     private const int DefaultTopK = 5;
-    private const float DefaultMinScore = 0.5f;
+    private const float DefaultMinScore = 0.3f;
     private const int MaxContextTokens = 4000;
 
     private const string SystemPrompt = """
@@ -140,7 +140,6 @@ public class SemanticKernelChatService : IChatService
     {
         _logger.LogDebug("Iniciando chat RAG streaming. ProjectId: {ProjectId}", projectId);
 
-        // 1. Validar que el proyecto existe
         var projectResult = await _projectRepository.GetByIdAsync(projectId, cancellationToken);
         if (projectResult is null)
         {
@@ -148,7 +147,6 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        // 2. Verificar que hay documentos vectorizados
         var hasVectorizedDocs = await _dbContext.Documents
             .AnyAsync(d => d.ProjectId == projectId && d.IsVectorized, cancellationToken);
 
@@ -159,7 +157,6 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        // 3. Generar embedding de la consulta
         var embeddingResult = await _embeddingService.GenerateEmbeddingAsync(message, cancellationToken);
         if (embeddingResult.IsFailure)
         {
@@ -167,7 +164,6 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        // 4. Buscar chunks similares en Qdrant
         var searchResult = await _vectorStoreService.SearchAsync(
             embeddingResult.Value,
             projectId,
@@ -181,7 +177,6 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        // 5. Recuperar contenido de chunks desde la BD
         var (context, _) = await BuildContextAsync(searchResult.Value, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(context))
@@ -190,10 +185,68 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        // 6. Stream de respuesta del LLM
         await foreach (var token in StreamLlmResponseAsync(context, message, cancellationToken))
         {
             yield return token;
+        }
+    }
+
+    /// <inheritdoc />
+    public async IAsyncEnumerable<(object, List<DocumentReferenceDto>)> ChatStreamWithReferencesAsync(
+        Guid projectId,
+        string message,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Iniciando chat RAG streaming con referencias. ProjectId: {ProjectId}", projectId);
+
+        var projectResult = await _projectRepository.GetByIdAsync(projectId, cancellationToken);
+        if (projectResult is null)
+        {
+            yield return ("Error: Proyecto no encontrado.", []);
+            yield break;
+        }
+
+        var hasVectorizedDocs = await _dbContext.Documents
+            .AnyAsync(d => d.ProjectId == projectId && d.IsVectorized, cancellationToken);
+
+        if (!hasVectorizedDocs)
+        {
+            yield return ("Este proyecto no tiene documentos procesados todavía. " +
+                        "Por favor, sube algunos documentos y espera a que se procesen.", []);
+            yield break;
+        }
+
+        var embeddingResult = await _embeddingService.GenerateEmbeddingAsync(message, cancellationToken);
+        if (embeddingResult.IsFailure)
+        {
+            yield return ($"Error generando embedding: {embeddingResult.Error.Description}", []);
+            yield break;
+        }
+
+        var searchResult = await _vectorStoreService.SearchAsync(
+            embeddingResult.Value,
+            projectId,
+            DefaultTopK,
+            DefaultMinScore,
+            cancellationToken);
+
+        if (searchResult.IsFailure)
+        {
+            yield return ($"Error en búsqueda: {searchResult.Error.Description}", []);
+            yield break;
+        }
+
+        var (context, references) = await BuildContextAsync(searchResult.Value, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(context))
+        {
+            yield return ("No encontré documentos relevantes para tu pregunta en este proyecto.", []);
+            yield break;
+        }
+
+        await foreach (var item in StreamLlmWithReferencesAsync(context, message, references, cancellationToken))
+        {
+            yield return item;
         }
     }
 
@@ -314,7 +367,6 @@ public class SemanticKernelChatService : IChatService
         string userMessage,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Obtener servicio fuera del yield (no se puede usar yield en catch)
         var (chatService, errorMessage) = GetChatService();
 
         if (chatService is null)
@@ -345,6 +397,46 @@ public class SemanticKernelChatService : IChatService
     }
 
     /// <summary>
+    /// Stream de respuesta del LLM con referencias.
+    /// </summary>
+    private async IAsyncEnumerable<(object, List<DocumentReferenceDto>)> StreamLlmWithReferencesAsync(
+        string context,
+        string userMessage,
+        List<DocumentReferenceDto> references,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var (chatService, errorMessage) = GetChatService();
+
+        if (chatService is null)
+        {
+            yield return (errorMessage ?? "Error: No hay servicio de chat configurado.", []);
+            yield break;
+        }
+
+        var chatHistory = new ChatHistory();
+        chatHistory.AddSystemMessage(SystemPrompt);
+        chatHistory.AddUserMessage($"""
+            CONTEXTO DE DOCUMENTOS:
+            {context}
+
+            PREGUNTA DEL USUARIO:
+            {userMessage}
+            """);
+
+        await foreach (var chunk in chatService.GetStreamingChatMessageContentsAsync(
+            chatHistory,
+            cancellationToken: cancellationToken))
+        {
+            if (!string.IsNullOrEmpty(chunk.Content))
+            {
+                yield return (chunk.Content, []);
+            }
+        }
+
+        yield return (new { __references = true }, references);
+    }
+
+    /// <summary>
     /// Obtiene el servicio de chat del kernel.
     /// Separado para evitar yield dentro de try-catch.
     /// </summary>
@@ -361,3 +453,4 @@ public class SemanticKernelChatService : IChatService
         }
     }
 }
+
