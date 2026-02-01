@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject IChatApiService ChatApi
 @inject ISnackbar Snackbar
+@inject ILogger<ChatWindow> Logger
 @implements IDisposable
 
 <MudPaper Elevation="2" Class="d-flex flex-column" Style="height: 500px;">
@@ -91,6 +92,12 @@
     private bool _useStreaming = true;
     private ElementReference _chatContainer;
     private CancellationTokenSource? _cts;
+    private ILogger<ChatWindow>? _logger;
+
+    protected override void OnInitialized()
+    {
+        _logger = Logger;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

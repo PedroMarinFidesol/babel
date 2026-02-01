@@ -107,11 +107,11 @@ else if (_project is not null)
                             <MudTh>Nombre</MudTh>
                             <MudTh>Tamaño</MudTh>
                             <MudTh>Estado</MudTh>
-                            <MudTh Style="width: 50px;"></MudTh>
+                            <MudTh Style="width: 100px;"></MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Nombre">
-                                <div class="d-flex align-center">
+                            <MudTd DataLabel="Nombre" Class="cursor-pointer">
+                                <div class="d-flex align-center" @onclick="@(() => HandleDocumentClick(context.Id))">
                                     <MudIcon Icon="@GetFileIcon(context.FileExtension)" Size="Size.Small" Class="mr-2" />
                                     @context.FileName
                                 </div>
@@ -123,11 +123,20 @@ else if (_project is not null)
                                 </MudChip>
                             </MudTd>
                             <MudTd>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Size="Size.Small"
-                                               Color="Color.Error"
-                                               OnClick="@(() => DeleteDocument(context))"
-                                               Disabled="@(_deletingDocumentId == context.Id)" />
+                                <MudTooltip Text="Descargar archivo">
+                                    <MudLink Href="@($"/api/documents/{context.Id}/download")">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Download"
+                                                       Size="Size.Small"
+                                                       Color="Color.Primary" />
+                                    </MudLink>
+                                </MudTooltip>
+                                <MudTooltip Text="Eliminar documento">
+                                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(e => DeleteDocument(context))"
+                                                   Disabled="@(_deletingDocumentId == context.Id)" />
+                                </MudTooltip>
                             </MudTd>
                         </RowTemplate>
                     </MudTable>
@@ -174,10 +183,11 @@ else if (_project is not null)
 @* Document Detail Dialog *@
 <MudDialog @bind-Visible="_showDocumentDialog" Options="@(new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge })">
     <TitleContent>
-        <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
-            @_selectedDocument?.FileName
-        </MudText>
+        <div class="d-flex align-center w-100">
+            <MudIcon Icon="@(_selectedDocument != null ? GetFileIcon(_selectedDocument.FileExtension) : Icons.Material.Filled.Description)"
+                     Size="Size.Medium" Class="mr-2" />
+            <MudText Typo="Typo.h6" Class="flex-grow-1">@_selectedDocument?.FileName</MudText>
+        </div>
     </TitleContent>
     <DialogContent>
         @if (_isLoadingDocumentContent)
@@ -197,58 +207,104 @@ else if (_project is not null)
         }
         else
         {
-            <MudPaper Elevation="1" Class="pa-4 mb-4" Style="max-height: 400px; overflow-y: auto;">
-                <MudText Typo="Typo.body2" Style="white-space: pre-wrap; line-height: 1.6;">
-                    @(_documentContent ?? "Sin contenido disponible")
-                </MudText>
-            </MudPaper>
-
             @if (_selectedDocument is not null)
             {
-                <MudGrid Class="mt-4">
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tamaño:</MudText>
-                        <MudText Typo="Typo.body2">@_selectedDocument.FileSizeFormatted</MudText>
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="6">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="mr-1" />
+                                    Tamaño
+                                </MudText>
+                                <MudText Typo="Typo.h6">@_selectedDocument.FileSizeFormatted</MudText>
+                            </MudCardContent>
+                        </MudCard>
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tipo:</MudText>
-                        <MudText Typo="Typo.body2">@_selectedDocument.MimeType</MudText>
+                    <MudItem xs="12" sm="6">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-1" />
+                                    Tipo
+                                </MudText>
+                                <MudText Typo="Typo.h6">@_selectedDocument.MimeType</MudText>
+                            </MudCardContent>
+                        </MudCard>
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Estado:</MudText>
-                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedDocument.Status)" Variant="Variant.Filled">
-                            @GetStatusText(_selectedDocument.Status)
-                        </MudChip>
+                    <MudItem xs="12" sm="6">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Schedule" Size="Size.Small" Class="mr-1" />
+                                    Estado
+                                </MudText>
+                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(_selectedDocument.Status)" Variant="Variant.Filled">
+                                    @GetStatusText(_selectedDocument.Status)
+                                </MudChip>
+                            </MudCardContent>
+                        </MudCard>
                     </MudItem>
-                    <MudItem xs="6">
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Procesado:</MudText>
-                        <MudText Typo="Typo.body2">@(_selectedDocument.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</MudText>
+                    <MudItem xs="12" sm="6">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Class="mr-1" />
+                                    Procesado
+                                </MudText>
+                                <MudText Typo="Typo.h6">@(_selectedDocument.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</MudText>
+                            </MudCardContent>
+                        </MudCard>
                     </MudItem>
-                    @if (_selectedDocument.IsVectorized)
-                    {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.caption" Color="Color.Primary">
-                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-1" />
-                                Este documento ha sido vectorizado y está disponible para búsquedas semánticas
-                            </MudText>
-                        </MudItem>
-                    }
                 </MudGrid>
+
+                @if (_selectedDocument.IsVectorized)
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Class="mr-2" />
+                        Este documento ha sido vectorizado y está disponible para búsquedas semánticas
+                    </MudAlert>
+                }
             }
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" />
+                Contenido del documento
+            </MudText>
+
+            <MudPaper Elevation="2" Class="pa-4" Style="max-height: 500px; overflow-y: auto; background-color: var(--mud-palette-background);">
+                @if (string.IsNullOrWhiteSpace(_documentContent))
+                {
+                    <div class="d-flex flex-column align-center pa-8">
+                        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Color="Color.Secondary" Class="text-center">
+                            Este documento aún no ha sido procesado.<br />
+                            Una vez procesado, podrás ver su contenido aquí.
+                        </MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Style="white-space: pre-wrap; line-height: 1.8; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em;">
+                        @_documentContent
+                    </MudText>
+                }
+            </MudPaper>
         }
     </DialogContent>
     <DialogActions>
         @if (_selectedDocument is not null && !_isLoadingDocumentContent)
         {
-            <MudButton OnClick="@(() => _showDocumentDialog = false)">
+            <MudButton Variant="Variant.Text" OnClick="@(() => _showDocumentDialog = false)">
                 Cerrar
             </MudButton>
             <MudButton Color="Color.Primary"
                        Variant="Variant.Filled"
                        StartIcon="@Icons.Material.Filled.Download"
-                       OnClick="@DownloadDocument"
-                       Disabled="@(!_selectedDocument.IsVectorized && _selectedDocument.Status != Domain.Enums.DocumentStatus.Completed)">
-                Descargar
+                       Href="@($"/api/documents/{_selectedDocument.Id}/download")">
+                Descargar Archivo
             </MudButton>
         }
     </DialogActions>

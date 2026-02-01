@@ -127,6 +127,7 @@ public class ChatApiService : IChatApiService
                         streamEvent = new ChatStreamEvent(currentEvent, string.Empty);
                         try
                         {
+                            _logger.LogInformation("Deserializando evento references. Data: {Data}", data);
                             var refs = System.Text.Json.JsonSerializer.Deserialize<List<DocumentReferenceDto>>(
                                 data,
                                 new System.Text.Json.JsonSerializerOptions
@@ -134,9 +135,11 @@ public class ChatApiService : IChatApiService
                                     PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
                                 });
                             streamEvent.References = refs ?? [];
+                            _logger.LogInformation("Referencias deserializadas: {Count}", refs?.Count ?? 0);
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            _logger.LogError(ex, "Error deserializando referencias");
                             streamEvent.References = [];
                         }
                     }

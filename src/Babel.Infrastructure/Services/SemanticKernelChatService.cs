@@ -244,7 +244,13 @@ public class SemanticKernelChatService : IChatService
             yield break;
         }
 
-        await foreach (var item in StreamLlmWithReferencesAsync(context, message, references, cancellationToken))
+        // Eliminar duplicados de referencias (mismo DocumentId)
+        var uniqueReferences = references
+            .GroupBy(r => r.DocumentId)
+            .Select(g => g.OrderByDescending(r => r.RelevanceScore).First())
+            .ToList();
+
+        await foreach (var item in StreamLlmWithReferencesAsync(context, message, uniqueReferences, cancellationToken))
         {
             yield return item;
         }

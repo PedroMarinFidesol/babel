@@ -106,8 +106,6 @@ public class ChatController : ControllerBase
                 }
             }
 
-            await WriteSSEAsync("done", "");
-
             _logger.LogInformation("Enviando referencias al cliente: {Count} documentos", references.Count);
 
             if (references.Count > 0)
@@ -117,6 +115,8 @@ public class ChatController : ControllerBase
                 await WriteSSEAsync("references", refsJson);
                 _logger.LogInformation("Evento references enviado: {Data}", refsJson);
             }
+
+            await WriteSSEAsync("done", "");
         }
         catch (OperationCanceledException)
         {
