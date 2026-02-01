@@ -1,7 +1,7 @@
 # Tarea: Conexión UI Chat con API REST
 
 **Fecha:** 2026-02-01
-**Estado:** Pendiente
+**Estado:** Completado
 **Prioridad:** Alta
 **Fases afectadas:** 9 (completar) y 10
 
@@ -697,27 +697,27 @@ Y en la tabla de documentos, agregar clase condicional:
 ## Checklist de Implementación
 
 ### Backend (Babel.API)
-- [ ] Crear `ChatController.cs`
-- [ ] Endpoint POST `/api/projects/{projectId}/chat`
-- [ ] Endpoint POST `/api/projects/{projectId}/chat/stream` (SSE)
-- [ ] Documentar endpoints en Swagger
+- [x] Crear `ChatController.cs`
+- [x] Endpoint POST `/api/projects/{projectId}/chat`
+- [x] Endpoint POST `/api/projects/{projectId}/chat/stream` (SSE)
+- [x] Documentar endpoints en Swagger (via atributos ProducesResponseType)
 
 ### Frontend (Babel.WebUI)
-- [ ] Crear `Services/ChatApiService.cs`
-- [ ] Crear `Services/IChatApiService.cs` (interface)
-- [ ] Registrar `HttpClient` en `Program.cs`
-- [ ] Agregar `ApiBaseUrl` a `appsettings.json`
-- [ ] Modificar `ChatWindow.razor`:
-  - [ ] Inyectar `IChatApiService`
-  - [ ] Implementar `SendWithoutStreamingAsync`
-  - [ ] Implementar `SendWithStreamingAsync`
-  - [ ] Agregar toggle de streaming
-  - [ ] Manejar cancelación
-- [ ] Modificar `ChatMessage.razor`:
-  - [ ] Mostrar referencias como chips clicables
-  - [ ] Mostrar score de relevancia
-- [ ] Modificar `Detail.razor`:
-  - [ ] Resaltar documento al hacer click en referencia
+- [x] Crear `Services/ChatApiService.cs`
+- [x] Crear `Services/IChatApiService.cs` (interface)
+- [x] Registrar `HttpClient` en `Program.cs`
+- [x] Agregar `ApiBaseUrl` a `appsettings.json`
+- [x] Modificar `ChatWindow.razor`:
+  - [x] Inyectar `IChatApiService`
+  - [x] Implementar `SendWithoutStreamingAsync`
+  - [x] Implementar `SendWithStreamingAsync`
+  - [x] Agregar toggle de streaming
+  - [x] Manejar cancelación
+- [x] Modificar `ChatMessage.razor`:
+  - [x] Mostrar referencias como chips clicables
+  - [x] Mostrar score de relevancia
+- [x] Modificar `Detail.razor`:
+  - [x] Resaltar documento al hacer click en referencia
 
 ### Tests
 - [ ] Tests unitarios de `ChatController`
@@ -726,7 +726,7 @@ Y en la tabla de documentos, agregar clase condicional:
 
 ### Documentación
 - [ ] Actualizar `PLAN_DESARROLLO.md`
-- [ ] Documentar endpoints en Swagger
+- [x] Documentar endpoints en Swagger (via atributos)
 - [ ] Agregar notas a `CLAUDE.md` si aplica
 
 ---

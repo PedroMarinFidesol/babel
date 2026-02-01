@@ -1,6 +1,7 @@
 using Babel.Application;
 using Babel.Infrastructure;
 using Babel.Infrastructure.Configuration;
+using Babel.WebUI.Services;
 using Hangfire;
 using Hangfire.Dashboard;
 using MudBlazor.Services;
@@ -13,9 +14,21 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 // Add MudBlazor services
 builder.Services.AddMudServices();
 
+// Add Theme service
+builder.Services.AddScoped<IThemeService, ThemeService>();
+
+// Add HttpClient for Chat API
+builder.Services.AddHttpClient<IChatApiService, ChatApiService>(client =>
+{
+    var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:5001/";
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromMinutes(5); // Timeout largo para streaming
+});
+
 // Add Razor Pages and Blazor Server
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddControllers();
 
 // Add Application layer (MediatR, Validators, Behaviors)
 builder.Services.AddApplication();
@@ -45,6 +58,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
+app.MapControllers();
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

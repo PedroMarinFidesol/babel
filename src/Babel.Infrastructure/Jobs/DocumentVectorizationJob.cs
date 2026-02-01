@@ -158,7 +158,11 @@ public class DocumentVectorizationJob
             chunksForQdrant.Add((pointId, embedding, payload));
         }
 
-        // 7. Guardar en Qdrant
+        // 7. Marcar documento como vectorizado (en memoria, antes de guardar)
+        document.IsVectorized = true;
+        document.VectorizedAt = DateTime.UtcNow;
+
+        // 8. Guardar en Qdrant PRIMERO (si falla, no guardamos en BD)
         var upsertResult = await _vectorStoreService.UpsertChunksAsync(chunksForQdrant);
 
         if (upsertResult.IsFailure)
@@ -169,8 +173,12 @@ public class DocumentVectorizationJob
             throw new InvalidOperationException($"Error guardando en Qdrant: {upsertResult.Error.Description}");
         }
 
-        // 8. Marcar documento como vectorizado (update directo para evitar conflictos de concurrencia)
-        await _documentRepository.MarkAsVectorizedAsync(documentId);
+        // 9. Guardar TODO en SQL Server (documento + chunks en una sola transacción)
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogDebug(
+            "Documento y chunks guardados en SQL Server para documento {DocumentId}",
+            documentId);
 
         _logger.LogInformation(
             "Documento {DocumentId} vectorizado exitosamente. Chunks: {ChunkCount}, Dimensiones: {Dimensions}",

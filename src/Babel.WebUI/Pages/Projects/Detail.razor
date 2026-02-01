@@ -99,7 +99,8 @@ else if (_project is not null)
                 }
                 else
                 {
-                    <MudTable Items="@_documents" Dense="true" Hover="true" Elevation="0">
+                    <MudTable Items="@_documents" Dense="true" Hover="true" Elevation="0"
+                              RowStyleFunc="@((doc, _) => GetRowStyle(doc))">
                         <HeaderContent>
                             <MudTh>Nombre</MudTh>
                             <MudTh>Tamaño</MudTh>
@@ -221,6 +222,9 @@ else if (_project is not null)
 
     // Document delete state
     private Guid? _deletingDocumentId;
+
+    // Document highlight state (from chat reference click)
+    private Guid? _highlightedDocumentId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -392,7 +396,23 @@ else if (_project is not null)
 
     private void HandleDocumentClick(Guid documentId)
     {
-        Snackbar.Add($"Documento seleccionado: {documentId}", Severity.Info);
+        _highlightedDocumentId = documentId;
+
+        // Buscar el documento y mostrar notificación
+        var document = _documents.FirstOrDefault(d => d.Id == documentId);
+        if (document != null)
+        {
+            Snackbar.Add($"Documento: {document.FileName}", Severity.Info);
+        }
+
+        StateHasChanged();
+
+        // Quitar highlight después de 3 segundos
+        _ = Task.Delay(3000).ContinueWith(_ =>
+        {
+            _highlightedDocumentId = null;
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private async Task HandleFilesUploaded(List<DocumentDto> documents)
@@ -473,4 +493,13 @@ else if (_project is not null)
         Babel.Domain.Enums.DocumentStatus.PendingReview => "Revisión",
         _ => "Desconocido"
     };
+
+    private string GetRowStyle(DocumentDto document)
+    {
+        if (_highlightedDocumentId == document.Id)
+        {
+            return "background-color: var(--mud-palette-primary-lighten); transition: background-color 0.3s ease;";
+        }
+        return "";
+    }
 }

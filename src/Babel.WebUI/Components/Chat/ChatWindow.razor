@@ -1,29 +1,43 @@
+@using Babel.WebUI.Services
+@using System.Text
 @inject IJSRuntime JS
+@inject IChatApiService ChatApi
+@inject ISnackbar Snackbar
+@implements IDisposable
 
 <MudPaper Elevation="2" Class="d-flex flex-column" Style="height: 500px;">
     <MudToolBar Dense="true" Class="px-4">
         <MudIcon Icon="@Icons.Material.Filled.Chat" Class="mr-2" />
         <MudText Typo="Typo.subtitle1">Chat RAG</MudText>
         <MudSpacer />
+        @* Toggle para streaming *@
+        <MudTooltip Text="@(_useStreaming ? "Streaming activado" : "Streaming desactivado")">
+            <MudToggleIconButton @bind-Toggled="_useStreaming"
+                                 Icon="@Icons.Material.Filled.Stream"
+                                 ToggledIcon="@Icons.Material.Filled.Stream"
+                                 Size="Size.Small"
+                                 Color="@(_useStreaming ? Color.Primary : Color.Default)" />
+        </MudTooltip>
         <MudTooltip Text="Limpiar conversacion">
             <MudIconButton Icon="@Icons.Material.Filled.DeleteSweep"
                            Size="Size.Small"
                            OnClick="@ClearChat"
-                           Disabled="@(_messages.Count == 0)" />
+                           Disabled="@(_messages.Count == 0 || _isProcessing)" />
         </MudTooltip>
     </MudToolBar>
 
     <MudDivider />
 
-    <div @ref="_chatContainer" class="flex-grow-1 overflow-auto pa-4" style="background-color: var(--mud-palette-background-grey);">
+    <div @ref="_chatContainer" class="flex-grow-1 overflow-auto pa-4"
+         style="background-color: var(--mud-palette-background-grey);">
         @if (_messages.Count == 0)
         {
             <div class="d-flex flex-column align-center justify-center" style="height: 100%;">
-                <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer"
+                         Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
                 <MudText Typo="Typo.body1" Color="Color.Secondary">No hay mensajes</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Escribe una pregunta sobre los documentos del proyecto</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
-                    (El servicio de IA no está implementado aún)
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Escribe una pregunta sobre los documentos del proyecto
                 </MudText>
             </div>
         }
@@ -34,11 +48,13 @@
                 <ChatMessage Message="@message" OnReferenceClick="@HandleReferenceClick" />
             }
 
-            @if (_isProcessing)
+            @if (_isProcessing && !_useStreaming)
             {
                 <div class="d-flex align-center pa-2 mb-2">
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Analizando documentos...</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Analizando documentos...
+                    </MudText>
                 </div>
             }
         }
@@ -72,7 +88,9 @@
     private List<ChatMessageDto> _messages = [];
     private string _currentMessage = "";
     private bool _isProcessing;
+    private bool _useStreaming = true;
     private ElementReference _chatContainer;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -97,8 +115,9 @@
         var userMessage = _currentMessage.Trim();
         _currentMessage = "";
         _isProcessing = true;
+        _cts = new CancellationTokenSource();
 
-        // Add user message immediately
+        // Agregar mensaje del usuario inmediatamente
         _messages.Add(new ChatMessageDto
         {
             Content = userMessage,
@@ -111,19 +130,44 @@
 
         try
         {
-            // TODO: Implement actual RAG chat via MediatR command
-            // For now, show a placeholder response
-            await Task.Delay(500); // Simulate processing time
-
+            if (_useStreaming)
+            {
+                await SendWithStreamingAsync(userMessage);
+            }
+            else
+            {
+                await SendWithoutStreamingAsync(userMessage);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Usuario canceló - no mostrar error
+        }
+        catch (Exception ex)
+        {
             _messages.Add(new ChatMessageDto
             {
-                Content = "El servicio de chat RAG no está implementado aún. Esta funcionalidad estará disponible en una fase posterior del desarrollo.",
+                Content = $"Error: {ex.Message}",
                 IsUser = false,
-                Timestamp = DateTime.UtcNow,
-                References = []
+                Timestamp = DateTime.UtcNow
             });
+            Snackbar.Add("Error al procesar la pregunta", Severity.Error);
         }
-        catch
+        finally
+        {
+            _isProcessing = false;
+            _cts?.Dispose();
+            _cts = null;
+            StateHasChanged();
+            await ScrollToBottomAsync();
+        }
+    }
+
+    private async Task SendWithoutStreamingAsync(string userMessage)
+    {
+        var response = await ChatApi.SendMessageAsync(ProjectId, userMessage, _cts!.Token);
+
+        if (response is null)
         {
             _messages.Add(new ChatMessageDto
             {
@@ -131,16 +175,80 @@
                 IsUser = false,
                 Timestamp = DateTime.UtcNow
             });
+            return;
         }
-        finally
+
+        _messages.Add(new ChatMessageDto
         {
-            _isProcessing = false;
-            await ScrollToBottomAsync();
+            Content = response.Response,
+            IsUser = false,
+            Timestamp = DateTime.UtcNow,
+            References = response.References
+        });
+    }
+
+    private async Task SendWithStreamingAsync(string userMessage)
+    {
+        var contentBuilder = new StringBuilder();
+        var assistantMessage = new ChatMessageDto
+        {
+            Content = "",
+            IsUser = false,
+            Timestamp = DateTime.UtcNow,
+            References = []
+        };
+
+        // Agregar mensaje vacío que iremos llenando
+        _messages.Add(assistantMessage);
+        StateHasChanged();
+
+        await foreach (var evt in ChatApi.SendMessageStreamAsync(
+            ProjectId, userMessage, _cts!.Token))
+        {
+            switch (evt.EventType)
+            {
+                case "token":
+                    contentBuilder.Append(evt.Data);
+                    assistantMessage.Content = contentBuilder.ToString();
+                    await InvokeAsync(StateHasChanged);
+                    await ScrollToBottomAsync();
+                    break;
+
+                case "error":
+                    if (contentBuilder.Length == 0)
+                    {
+                        assistantMessage.Content = $"Error: {evt.Data}";
+                    }
+                    else
+                    {
+                        assistantMessage.Content = contentBuilder + $"\n\n[Error: {evt.Data}]";
+                    }
+                    Snackbar.Add(evt.Data, Severity.Error);
+                    break;
+
+                case "cancelled":
+                    if (contentBuilder.Length > 0)
+                    {
+                        assistantMessage.Content = contentBuilder + "\n\n[Cancelado]";
+                    }
+                    break;
+
+                case "done":
+                    // Streaming completado
+                    break;
+            }
+        }
+
+        // Asegurar que el contenido final está actualizado
+        if (contentBuilder.Length > 0)
+        {
+            assistantMessage.Content = contentBuilder.ToString();
         }
     }
 
     private void ClearChat()
     {
+        _cts?.Cancel();
         _messages.Clear();
     }
 
@@ -157,7 +265,13 @@
         }
         catch
         {
-            // Ignore JS interop errors during prerendering
+            // Ignorar errores de JS interop durante prerendering
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 }

@@ -1,0 +1,31 @@
+@using Babel.WebUI.Services
+@inject IThemeService ThemeService
+
+<MudMenu Class="d-flex align-center" Dense="true" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+    <ActivatorContent>
+        <MudTooltip Text="Cambiar tema">
+            <MudIconButton Icon="@Icons.Material.Filled.Palette"
+                           Color="Color.Inherit"
+                           Class="mr-2"
+                           aria-label="Cambiar tema" />
+        </MudTooltip>
+    </ActivatorContent>
+    <ChildContent>
+        @foreach (var theme in Babel.WebUI.Models.AppTheme.GetAllThemes())
+        {
+            <MudMenuItem OnClick="() => ChangeTheme(theme)">
+                <MudIcon Icon="@Babel.WebUI.Models.AppTheme.GetThemeIcon(theme)" 
+                         Class="mr-2" 
+                         Size="Size.Small" />
+                <MudText Typo="Typo.body2">@Babel.WebUI.Models.AppTheme.GetThemeName(theme)</MudText>
+            </MudMenuItem>
+        }
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private async Task ChangeTheme(Babel.WebUI.Models.AppThemeType theme)
+    {
+        await ThemeService.SetThemeAsync(theme);
+    }
+}

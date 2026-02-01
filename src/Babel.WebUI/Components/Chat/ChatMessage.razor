@@ -6,23 +6,34 @@
 
             @if (!Message.IsUser && Message.References.Count > 0)
             {
-                <MudDivider Class="my-2" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
-                    Documentos referenciados:
-                </MudText>
-                <div class="d-flex flex-wrap gap-1">
-                    @foreach (var reference in Message.References)
-                    {
-                        <MudChip T="string"
-                                 Size="Size.Small"
-                                 Color="Color.Info"
-                                 Variant="Variant.Outlined"
-                                 Icon="@Icons.Material.Filled.Description"
-                                 OnClick="@(() => OnReferenceClick.InvokeAsync(reference.DocumentId))"
-                                 Style="cursor: pointer;">
-                            @TruncateFileName(reference.FileName, 20)
-                        </MudChip>
-                    }
+                <div class="mt-2 pt-2" style="border-top: 1px solid var(--mud-palette-divider);">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1">
+                        <MudIcon Icon="@Icons.Material.Filled.Source" Size="Size.Small"
+                                 Style="vertical-align: middle;" Class="mr-1" />
+                        Fuentes (@Message.References.Count):
+                    </MudText>
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var reference in Message.References)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="Color.Primary"
+                                     Variant="Variant.Outlined"
+                                     OnClick="@(() => OnReferenceClick.InvokeAsync(reference.DocumentId))"
+                                     Style="cursor: pointer;">
+                                <MudIcon Icon="@Icons.Material.Filled.Description"
+                                         Size="Size.Small" Class="mr-1" />
+                                @TruncateFileName(reference.FileName, 20)
+                                @if (reference.RelevanceScore > 0)
+                                {
+                                    <MudText Typo="Typo.caption" Class="ml-1"
+                                             Style="opacity: 0.7;">
+                                        (@((reference.RelevanceScore * 100).ToString("F0"))%)
+                                    </MudText>
+                                }
+                            </MudChip>
+                        }
+                    </div>
                 </div>
             }
         </MudPaper>
@@ -73,6 +84,7 @@
 
     private static string TruncateFileName(string name, int maxLength)
     {
+        if (string.IsNullOrEmpty(name)) return name;
         if (name.Length <= maxLength) return name;
 
         var extension = Path.GetExtension(name);

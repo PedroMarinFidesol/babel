@@ -1,6 +1,12 @@
+@implements IDisposable
 @inherits LayoutComponentBase
+@using Babel.WebUI.Services
+@using Babel.WebUI.Components
+@inject IThemeService ThemeService
 
-<MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="@_isDarkMode" />
+<MudThemeProvider @ref="_mudThemeProvider" 
+                   Theme="@_currentMudTheme"
+                   @bind-IsDarkMode="@_isDarkMode" />
 
 <MudLayout>
     <MudAppBar Elevation="1" Dense="true">
@@ -11,11 +17,7 @@
 
         <ServiceStatusIndicator />
 
-        <MudTooltip Text="@(_isDarkMode ? "Modo claro" : "Modo oscuro")">
-            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                           Color="Color.Inherit"
-                           OnClick="@ToggleDarkMode" />
-        </MudTooltip>
+        <ThemeSelector />
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen"
@@ -35,25 +37,36 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _isDarkMode;
+    private bool _isDarkMode = false;
     private MudThemeProvider? _mudThemeProvider;
+    private MudTheme _currentMudTheme = new MudTheme();
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender && _mudThemeProvider != null)
-        {
-            _isDarkMode = await _mudThemeProvider.GetSystemPreference();
-            StateHasChanged();
-        }
+        ThemeService.OnThemeChanged += HandleThemeChanged;
+        await ThemeService.LoadThemePreferenceAsync();
+        UpdateTheme();
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= HandleThemeChanged;
+    }
+
+    private void HandleThemeChanged()
+    {
+        UpdateTheme();
+    }
+
+    private void UpdateTheme()
+    {
+        _currentMudTheme = ThemeService.CurrentMudTheme;
+        _isDarkMode = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
     }
 
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
-    }
-
-    private void ToggleDarkMode()
-    {
-        _isDarkMode = !_isDarkMode;
     }
 }

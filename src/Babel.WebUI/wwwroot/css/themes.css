@@ -1,0 +1,208 @@
+:root {
+    --theme-primary: #3B82F6;
+    --theme-primary-hover: #2563EB;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #F3F4F6;
+    --theme-surface: #FFFFFF;
+    --theme-text-primary: #111827;
+    --theme-text-secondary: #6B7280;
+    --theme-border: #E5E7EB;
+    --theme-appbar-bg: #3B82F6;
+    --theme-appbar-text: #FFFFFF;
+    --theme-drawer-bg: #FFFFFF;
+    --theme-drawer-text: #111827;
+    --theme-table-hover: #EFF6FF;
+    --theme-table-striped: #F9FAFB;
+}
+
+body.dark-mode {
+    --theme-primary: #3B82F6;
+    --theme-primary-hover: #60A5FA;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #121212;
+    --theme-surface: #1E1E1E;
+    --theme-text-primary: #F9FAFB;
+    --theme-text-secondary: #9CA3AF;
+    --theme-border: #374151;
+    --theme-appbar-bg: #1E3A8A;
+    --theme-appbar-text: #FFFFFF;
+    --theme-drawer-bg: #1E1E1E;
+    --theme-drawer-text: #F9FAFB;
+    --theme-table-hover: rgba(59, 130, 246, 0.1);
+    --theme-table-striped: rgba(255, 255, 255, 0.02);
+}
+
+body.theme-midnight {
+    --theme-primary: #3B82F6;
+    --theme-primary-hover: #60A5FA;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #0F172A;
+    --theme-surface: #1E293B;
+    --theme-text-primary: #F8FAFC;
+    --theme-text-secondary: #94A3B8;
+    --theme-border: #334155;
+    --theme-appbar-bg: #1E293B;
+    --theme-appbar-text: #F8FAFC;
+    --theme-drawer-bg: #1E293B;
+    --theme-drawer-text: #F8FAFC;
+    --theme-table-hover: rgba(59, 130, 246, 0.15);
+    --theme-table-striped: rgba(59, 130, 246, 0.08);
+}
+
+body.theme-forest {
+    --theme-primary: #059669;
+    --theme-primary-hover: #10B981;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #064E3B;
+    --theme-surface: #065F46;
+    --theme-text-primary: #D1FAE5;
+    --theme-text-secondary: #6EE7B7;
+    --theme-border: #34D399;
+    --theme-appbar-bg: #064E3B;
+    --theme-appbar-text: #FFFFFF;
+    --theme-drawer-bg: #065F46;
+    --theme-drawer-text: #D1FAE5;
+    --theme-table-hover: rgba(5, 150, 105, 0.15);
+    --theme-table-striped: rgba(5, 150, 105, 0.08);
+}
+
+body.theme-ocean {
+    --theme-primary: #0891B2;
+    --theme-primary-hover: #06B6D4;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #164E63;
+    --theme-surface: #0E7490;
+    --theme-text-primary: #CFFAFE;
+    --theme-text-secondary: #67E8F9;
+    --theme-border: #22D3EE;
+    --theme-appbar-bg: #164E63;
+    --theme-appbar-text: #FFFFFF;
+    --theme-drawer-bg: #0E7490;
+    --theme-drawer-text: #CFFAFE;
+    --theme-table-hover: rgba(8, 145, 178, 0.15);
+    --theme-table-striped: rgba(8, 145, 178, 0.08);
+}
+
+body.theme-sunset {
+    --theme-primary: #EA580C;
+    --theme-primary-hover: #F97316;
+    --theme-primary-text: #FFFFFF;
+    --theme-background: #7C2D12;
+    --theme-surface: #9A3412;
+    --theme-text-primary: #FFEDD5;
+    --theme-text-secondary: #FDBA74;
+    --theme-border: #FB923C;
+    --theme-appbar-bg: #7C2D12;
+    --theme-appbar-text: #FFFFFF;
+    --theme-drawer-bg: #9A3412;
+    --theme-drawer-text: #FFEDD5;
+    --theme-table-hover: rgba(234, 88, 12, 0.15);
+    --theme-table-striped: rgba(234, 88, 12, 0.08);
+}
+
+body.theme-aurora {
+    --theme-primary: #00FF88;
+    --theme-primary-hover: #00CC6A;
+    --theme-primary-text: #000000;
+    --theme-background: #000D0D;
+    --theme-surface: #001A1A;
+    --theme-text-primary: #00FF88;
+    --theme-text-secondary: #00CCFF;
+    --theme-border: #00FF88;
+    --theme-appbar-bg: #001A1A;
+    --theme-appbar-text: #00FF88;
+    --theme-drawer-bg: #001A1A;
+    --theme-drawer-text: #00FF88;
+    --theme-table-hover: rgba(0, 255, 136, 0.12);
+    --theme-table-striped: rgba(0, 255, 136, 0.06);
+}
+
+body.theme-hacker {
+    --theme-primary: #00FF00;
+    --theme-primary-hover: #00CC00;
+    --theme-primary-text: #000000;
+    --theme-background: #000000;
+    --theme-surface: #0A0A0A;
+    --theme-text-primary: #00FF00;
+    --theme-text-secondary: #00AA00;
+    --theme-border: #00FF00;
+    --theme-appbar-bg: #000000;
+    --theme-appbar-text: #00FF00;
+    --theme-drawer-bg: #0A0A0A;
+    --theme-drawer-text: #00FF00;
+    --theme-table-hover: rgba(0, 255, 0, 0.1);
+    --theme-table-striped: rgba(0, 255, 0, 0.05);
+}
+
+body.theme-hacker {
+    font-family: 'Courier New', 'Consolas', 'Monaco', monospace !important;
+}
+
+body.theme-hacker .mud-typography {
+    font-family: 'Courier New', 'Consolas', 'Monaco', monospace !important;
+}
+
+body.theme-hacker .mud-text,
+body.theme-hacker .mud-button,
+body.theme-hacker .mud-input,
+body.theme-hacker h1,
+body.theme-hacker h2,
+body.theme-hacker h3,
+body.theme-hacker h4,
+body.theme-hacker h5,
+body.theme-hacker h6,
+body.theme-hacker p,
+body.theme-hacker span,
+body.theme-hacker div {
+    text-shadow: 0 0 5px currentColor !important;
+}
+
+body.theme-hacker .mud-button-root {
+    border: 1px solid currentColor !important;
+    box-shadow: none !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+}
+
+body.theme-hacker .mud-paper,
+body.theme-hacker .mud-card {
+    border: 1px solid currentColor !important;
+    box-shadow: none !important;
+}
+
+body.theme-hacker .mud-input-control {
+    border: 1px solid currentColor !important;
+}
+
+body.theme-hacker .mud-overlay {
+    background: rgba(0, 0, 0, 0.95) !important;
+}
+
+body.theme-hacker::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.03),
+        rgba(0, 255, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    z-index: 99999;
+    opacity: 0.5;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+body.theme-hacker .mud-button-root:hover,
+body.theme-hacker .mud-link:hover {
+    animation: blink 1s step-end infinite;
+}
