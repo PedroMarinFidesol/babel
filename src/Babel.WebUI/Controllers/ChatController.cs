@@ -99,19 +99,23 @@ public class ChatController : ControllerBase
                 {
                     await WriteSSEAsync("token", token);
                 }
-                else if (item.Item1 is object marker && marker.GetType().GetProperty("__references") != null)
+                else if (item.Item1.GetType().GetProperty("__references") != null)
                 {
+                    _logger.LogInformation("Recibiendo referencias: {Count} documentos", item.Item2.Count);
                     references = item.Item2;
                 }
             }
 
             await WriteSSEAsync("done", "");
 
+            _logger.LogInformation("Enviando referencias al cliente: {Count} documentos", references.Count);
+
             if (references.Count > 0)
             {
                 var refsJson = System.Text.Json.JsonSerializer.Serialize(references,
                     new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                 await WriteSSEAsync("references", refsJson);
+                _logger.LogInformation("Evento references enviado: {Data}", refsJson);
             }
         }
         catch (OperationCanceledException)

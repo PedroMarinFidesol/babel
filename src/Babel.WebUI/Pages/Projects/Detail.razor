@@ -172,7 +172,7 @@ else if (_project is not null)
 </MudDialog>
 
 @* Document Detail Dialog *@
-<MudDialog @bind-Visible="_showDocumentDialog" Options="DialogOptions.FullScreen">
+<MudDialog @bind-Visible="_showDocumentDialog" Options="@(new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge })">
     <TitleContent>
         <MudText Typo="Typo.h6">
             <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
@@ -516,10 +516,10 @@ else if (_project is not null)
         // Cargar contenido del documento
         try
         {
-            var result = await Mediator.Send(new GetDocumentContentQuery(documentId));
+            var result = await Mediator.Send(new GetDocumentTextQuery(documentId));
             if (result.IsSuccess)
             {
-                _documentContent = result.Value ?? "Sin contenido disponible";
+                _documentContent = result.Value ?? "Sin contenido disponible (el documento aún no ha sido procesado)";
             }
             else
             {

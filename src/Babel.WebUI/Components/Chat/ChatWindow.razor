@@ -215,7 +215,8 @@
                     break;
 
                 case "references":
-                    if (evt.References != null)
+                    _logger.LogInformation("Evento references recibido. Count: {Count}", evt.References?.Count ?? 0);
+                    if (evt.References != null && evt.References.Count > 0)
                     {
                         assistantMessage.References = evt.References;
                         await InvokeAsync(StateHasChanged);
@@ -242,6 +243,7 @@
                     break;
 
                 case "done":
+                    _logger.LogInformation("Streaming completado");
                     // Streaming completado
                     break;
             }
