@@ -2,6 +2,7 @@ using Babel.Application.Interfaces;
 using Babel.Domain.Entities;
 using Babel.Domain.Enums;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Babel.Infrastructure.Jobs;
@@ -158,10 +159,6 @@ public class DocumentVectorizationJob
             chunksForQdrant.Add((pointId, embedding, payload));
         }
 
-        // 7. Marcar documento como vectorizado (en memoria, antes de guardar)
-        document.IsVectorized = true;
-        document.VectorizedAt = DateTime.UtcNow;
-
         // 8. Guardar en Qdrant PRIMERO (si falla, no guardamos en BD)
         var upsertResult = await _vectorStoreService.UpsertChunksAsync(chunksForQdrant);
 
@@ -173,11 +170,14 @@ public class DocumentVectorizationJob
             throw new InvalidOperationException($"Error guardando en Qdrant: {upsertResult.Error.Description}");
         }
 
-        // 9. Guardar TODO en SQL Server (documento + chunks en una sola transacción)
+        // 9. Guardar todo en SQL Server (chunks + actualización de documento)
+        document.IsVectorized = true;
+        document.VectorizedAt = DateTime.UtcNow;
+
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogDebug(
-            "Documento y chunks guardados en SQL Server para documento {DocumentId}",
+            "Documento {DocumentId} actualizado (chunks + estado) en SQL Server",
             documentId);
 
         _logger.LogInformation(

@@ -339,15 +339,15 @@
         <main>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-sessions">13</div>
+                <div class="stat-value" id="total-sessions">14</div>
                 <div class="stat-label">Sesiones Totales</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="total-hours">21.5h</div>
+                <div class="stat-value" id="total-hours">23.5h</div>
                 <div class="stat-label">Horas de Desarrollo</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="last-session">2026-01-30</div>
+                <div class="stat-value" id="last-session">2026-02-01</div>
                 <div class="stat-label">Última Sesión</div>
             </div>
         </div>
@@ -364,6 +364,16 @@
 
     <script>
         const sessions = [
+            {
+                id: '20260201_214947',
+                date: '2026-02-01',
+                time: '21:49',
+                duration: '2.0h',
+                title: 'Vectorización: Tests, Documentación y Chat UI',
+                summary: 'Corrección del bug de concurrencia DbUpdateConcurrencyException en vectorización (Qdrant primero, un solo SaveChangesAsync). Creación de documentación completa del sistema de vectorización (docs/VECTORIZATION.md). 40 tests nuevos para DocumentVectorizationJob y SemanticKernelEmbeddingService. Merge y limpieza de worktrees y ramas. Total: 234 tests.',
+                tags: ['bugfix', 'documentation', 'test'],
+                docPath: 'sessions/20260201_214947_vectorizacion_tests_docs_chat_ui.md'
+            },
             {
                 id: '20260130_170204',
                 date: '2026-01-30',

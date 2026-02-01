@@ -42,7 +42,9 @@
       "Bash(git merge:*)",
       "Bash(git fetch:*)",
       "Bash(Services)",
-      "Bash(Components \")"
+      "Bash(Components \")",
+      "Bash(git worktree:*)",
+      "Bash(git branch:*)"
     ]
   }
 }

@@ -509,6 +509,7 @@ services.AddSingleton<QdrantClient>(sp => new QdrantClient(qdrantEndpoint));
 
 Para revisar el historial completo de desarrollo y decisiones técnicas, consulta los documentos de sesión en `docs/sessions/`:
 
+- **20260201_214947_vectorizacion_tests_docs_chat_ui.md** - Fix concurrencia vectorización, documentación VECTORIZATION.md, 40 tests nuevos (total: 234 tests)
 - **20260130_170204_servicio_chat_rag.md** - Fase 9: Servicio Chat RAG con SearchAsync en Qdrant, IChatService, SemanticKernelChatService, ChatQuery MediatR (111 tests)
 - **20260126_162831_bugfix_qdrant_chunking.md** - Bugfix: conexión Qdrant gRPC (puerto 6334 vs 6333) y bucle infinito en ChunkingService
 - **20260126_090724_fase5_webui_fase6_hangfire.md** - Fase 5 WebUI integrada con MediatR, Fase 6 Hangfire configurado con dashboard y jobs de procesamiento (total: 160 tests)
